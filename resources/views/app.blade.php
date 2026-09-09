@@ -8,16 +8,30 @@
 
         <script>
             // Suppress external browser extension runtime errors (e.g. Chrome Web Vitals extension reportAllChanges bug)
-            window.addEventListener('error', function (e) {
-                if (e && (
-                    (e.message && e.message.includes('startTime')) ||
-                    (e.error && e.error.stack && e.error.stack.includes('reportAllChanges'))
-                )) {
-                    e.preventDefault();
-                    e.stopImmediatePropagation();
-                    return true;
+            (function () {
+                function shouldSuppress(err, msg) {
+                    var str = (msg || '') + ' ' + (err && err.message ? err.message : '') + ' ' + (err && err.stack ? err.stack : '');
+                    return str.indexOf('startTime') !== -1 || str.indexOf('reportAllChanges') !== -1;
                 }
-            }, true);
+                var prevOnError = window.onerror;
+                window.onerror = function (msg, url, line, col, error) {
+                    if (shouldSuppress(error, msg)) return true;
+                    if (prevOnError) return prevOnError.apply(this, arguments);
+                };
+                window.addEventListener('error', function (e) {
+                    if (shouldSuppress(e.error, e.message)) {
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                        return true;
+                    }
+                }, true);
+                window.addEventListener('unhandledrejection', function (e) {
+                    if (shouldSuppress(e.reason, e.reason && e.reason.message)) {
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                    }
+                });
+            })();
         </script>
 
         <!-- Fonts -->

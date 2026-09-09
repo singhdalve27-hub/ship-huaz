@@ -197,4 +197,23 @@ Route::get('/storage/{path}', function ($path) {
     abort(404);
 })->where('path', '.*');
 
+// Fallback route para sa /images kung sakaling may hinahanap na asset na hindi direktang mahawakan ng web server
+Route::get('/images/{filename}', function ($filename) {
+    $filePath = public_path('images/' . $filename);
+    if (file_exists($filePath) && !is_dir($filePath)) {
+        return response()->file($filePath);
+    }
+
+    if (str_contains($filename, 'gcash') || str_contains($filename, 'qr')) {
+        return redirect('https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=09207139299&margin=10');
+    }
+
+    $fallback = public_path('images/venue.jpg');
+    if (file_exists($fallback)) {
+        return response()->file($fallback);
+    }
+
+    abort(404);
+})->where('filename', '.*');
+
 require __DIR__ . '/auth.php';

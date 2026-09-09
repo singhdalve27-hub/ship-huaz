@@ -26,3 +26,4 @@ class Feedback extends Model
         return $this->belongsTo(VenuePackage::class);
     }
 }
+

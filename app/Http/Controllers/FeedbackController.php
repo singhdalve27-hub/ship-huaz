@@ -45,3 +45,4 @@ class FeedbackController extends Controller
         return redirect()->back()->with('success', 'Thank you! Your feedback helps us continuously improve the Butal Ship Hauz experience.');
     }
 }
+
