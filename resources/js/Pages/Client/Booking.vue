@@ -528,6 +528,20 @@ const selectedPaymentOption = computed(() =>
     activePaymentOptions.value.find((o) => o.id === payment.value.method),
 );
 
+const downpaymentAmount = computed(() => {
+    return Math.round((grandTotal.value * 0.5) * 100) / 100;
+});
+
+const copiedNumber = ref(false);
+const copyAccountNumber = (num) => {
+    if (!num) return;
+    navigator.clipboard.writeText(num);
+    copiedNumber.value = true;
+    setTimeout(() => {
+        copiedNumber.value = false;
+    }, 2000);
+};
+
 const step5Valid = computed(() => {
     if (selectedPaymentOption.value?.isOnline) {
         return (
@@ -1296,38 +1310,147 @@ onMounted(() => {
                     <!-- ── STEP 5: PAYMENT ─────────────────────────────────── -->
                     <div v-if="currentStep === 5" class="p-6 md:p-10">
                         <div class="flex items-center gap-3 mb-2">
-                            <h2 class="font-display text-2xl font-bold text-sky-900">Payment Details</h2>
+                            <h2 class="font-display text-2xl font-bold text-sky-900">Payment & Reservation Deposit</h2>
                         </div>
-                        <p class="text-sm font-medium text-slate-500 mb-8">
-                            Total due: <strong class="text-orange-600 text-base ml-1">{{ fmt(grandTotal) }}</strong>
+                        <p class="text-sm font-medium text-slate-500 mb-6">
+                            To officially confirm and lock your date on our calendar, a <strong>50% reservation downpayment</strong> is required.
                         </p>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                        <!-- Deposit vs Total Banner -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-gradient-to-r from-sky-50 to-orange-50 border border-sky-200/80 mb-6">
+                            <div>
+                                <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 block">Total Package Amount</span>
+                                <span class="font-display font-black text-xl text-sky-950">{{ fmt(grandTotal) }}</span>
+                            </div>
+                            <div class="sm:border-l sm:border-slate-200 sm:pl-4">
+                                <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-orange-600 flex items-center gap-1">
+                                    <font-awesome-icon icon="fa-solid fa-lock" class="text-xs" />
+                                    50% Downpayment Due Now
+                                </span>
+                                <span class="font-display font-black text-2xl text-orange-600">{{ fmt(downpaymentAmount) }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Payment Method Selector -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                             <button
                                 v-for="m in activePaymentOptions" :key="m.id"
                                 @click="payment.method = m.id; payment.accountNumber = ''; payment.transactionNumber = '';"
-                                :class="['border-2 rounded-xl py-4 px-4 text-center font-bold tracking-wide transition-all duration-200', payment.method === m.id ? 'border-sky-500 bg-sky-50 text-sky-900 shadow-sm' : 'border-slate-200 text-slate-500 hover:border-sky-300 hover:bg-slate-50']"
+                                :class="[
+                                    'border-2 rounded-2xl py-3.5 px-4 text-center font-bold tracking-wide transition-all duration-200 flex items-center justify-center gap-2',
+                                    payment.method === m.id
+                                        ? 'border-orange-500 bg-orange-50 text-orange-950 shadow-sm'
+                                        : 'border-slate-200 text-slate-500 hover:border-orange-300 hover:bg-slate-50'
+                                ]"
                             >
-                                {{ m.label }}
+                                <font-awesome-icon :icon="m.label.toLowerCase().includes('gcash') ? 'fa-solid fa-qrcode' : 'fa-solid fa-credit-card'" class="text-orange-500" />
+                                <span>{{ m.label }}</span>
                             </button>
                         </div>
 
                         <div v-if="selectedPaymentOption?.isOnline" class="space-y-6">
-                            <div class="bg-orange-50 border border-orange-200 rounded-xl p-5 shadow-inner">
-                                <p class="text-sm font-bold text-orange-800 mb-1">Send your {{ selectedPaymentOption.label }} payment to:</p>
-                                <p class="text-2xl font-display font-bold text-orange-600 tracking-wider my-2">{{ selectedPaymentOption.number }}</p>
-                                <p class="text-sm text-orange-800 font-medium">Account Name: <strong>{{ selectedPaymentOption.account }}</strong></p>
-                                <p class="text-xs text-orange-700/80 font-medium mt-3 leading-relaxed">{{ selectedPaymentOption.description }}</p>
+                            <!-- GCash Scan-to-Pay QR Card -->
+                            <div class="overflow-hidden rounded-2xl border-2 border-blue-500/80 bg-white shadow-lg">
+                                <!-- GCash Top Brand Banner -->
+                                <div class="bg-gradient-to-r from-[#005CE6] to-[#0042A6] px-5 py-3 text-white flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 bg-white rounded-full flex items-center justify-center font-black text-[#005CE6] text-sm">
+                                            G
+                                        </div>
+                                        <div>
+                                            <p class="font-display font-black text-sm tracking-wide leading-none">GCash Scan to Pay</p>
+                                            <p class="text-[10px] text-blue-100 font-mono mt-0.5">Instant Merchant QR Payment</p>
+                                        </div>
+                                    </div>
+                                    <span class="px-2.5 py-0.5 rounded-full bg-white/20 text-white font-mono text-[10px] font-bold uppercase tracking-wider">
+                                        Official QR
+                                    </span>
+                                </div>
+
+                                <div class="p-6 flex flex-col md:flex-row items-center gap-6">
+                                    <!-- QR Code Graphic Container -->
+                                    <div class="shrink-0 flex flex-col items-center">
+                                        <div class="relative p-3 bg-white border-2 border-dashed border-blue-400 rounded-2xl shadow-inner group">
+                                            <div class="w-44 h-44 bg-white rounded-xl flex items-center justify-center p-1 relative overflow-hidden">
+                                                <img
+                                                    src="/images/gcash-qr.png"
+                                                    alt="GCash QR Code"
+                                                    class="w-full h-full object-contain rounded-lg"
+                                                    @error="$event.target.onerror = null; $event.target.src = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=09207139299&margin=10'"
+                                                />
+                                            </div>
+                                        </div>
+                                        <p class="text-[10px] font-bold text-slate-400 mt-2 flex items-center gap-1">
+                                            <font-awesome-icon icon="fa-solid fa-camera" />
+                                            <span>Scan via GCash App</span>
+                                        </p>
+                                    </div>
+
+                                    <!-- Account & Copy Details -->
+                                    <div class="flex-1 space-y-3 w-full text-center md:text-left">
+                                        <div>
+                                            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">Account Name</span>
+                                            <p class="font-display font-black text-lg text-sky-950">
+                                                {{ selectedPaymentOption.account || 'Dalve S. / Butal Ship Hauz' }}
+                                            </p>
+                                        </div>
+
+                                        <div>
+                                            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">GCash Mobile Number</span>
+                                            <div class="flex items-center justify-center md:justify-start gap-2 mt-1">
+                                                <span class="font-mono text-xl sm:text-2xl font-black text-blue-600 tracking-wider">
+                                                    {{ selectedPaymentOption.number }}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    @click="copyAccountNumber(selectedPaymentOption.number)"
+                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-xs"
+                                                    :class="copiedNumber ? 'bg-emerald-500 text-white' : 'bg-slate-100 hover:bg-blue-50 text-blue-700 border border-slate-200'"
+                                                >
+                                                    <font-awesome-icon :icon="copiedNumber ? 'fa-solid fa-check' : 'fa-solid fa-copy'" />
+                                                    <span>{{ copiedNumber ? 'Copied!' : 'Copy' }}</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div class="pt-2 border-t border-slate-100">
+                                            <p class="text-xs text-slate-600 leading-relaxed font-medium">
+                                                💡 <strong>How to pay:</strong> Open GCash &rarr; Tap <strong>QR / Scan</strong> &rarr; Scan the QR code above (or send to mobile number) &rarr; Enter <strong>{{ fmt(downpaymentAmount) }}</strong> downpayment &rarr; Paste your 13-digit Reference No. below.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
+                            <!-- Customer Input: Mobile & Transaction Ref -->
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
                                 <div>
-                                    <label class="block text-sm font-bold text-sky-900 mb-2">Your {{ selectedPaymentOption.label }} Number <span class="text-orange-500">*</span></label>
-                                    <input v-model="payment.accountNumber" type="tel" placeholder="e.g. 09123456789" pattern="^9d{9}$" maxlength="10" required class="w-full border border-slate-300 rounded-md px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm" />
+                                    <label class="block text-sm font-bold text-sky-900 mb-2">
+                                        Your {{ selectedPaymentOption.label }} Mobile Number <span class="text-orange-500">*</span>
+                                    </label>
+                                    <input
+                                        v-model="payment.accountNumber"
+                                        type="tel"
+                                        placeholder="e.g. 09123456789"
+                                        maxlength="11"
+                                        required
+                                        class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm"
+                                    />
+                                    <p class="text-[11px] text-slate-400 mt-1">The sender number used on GCash</p>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-bold text-sky-900 mb-2">Reference Number <span class="text-orange-500">*</span></label>
-                                    <input v-model="payment.transactionNumber" type="text" placeholder="e.g. 1029384756" required class="w-full border border-slate-300 rounded-md px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm" />
+                                    <label class="block text-sm font-bold text-sky-900 mb-2">
+                                        GCash Reference Number (13 digits) <span class="text-orange-500">*</span>
+                                    </label>
+                                    <input
+                                        v-model="payment.transactionNumber"
+                                        type="text"
+                                        placeholder="e.g. 1029384756382"
+                                        maxlength="30"
+                                        required
+                                        class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm font-mono"
+                                    />
+                                    <p class="text-[11px] text-slate-400 mt-1">Found in your GCash SMS or in-app receipt</p>
                                 </div>
                             </div>
                         </div>

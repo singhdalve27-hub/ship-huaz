@@ -84,6 +84,31 @@ class AppServiceProvider extends ServiceProvider
                 });
             }
 
+            // 4. Ensure payment_options has qr_code column
+            if (Schema::hasTable('payment_options') && !Schema::hasColumn('payment_options', 'qr_code')) {
+                Schema::table('payment_options', function (Blueprint $table) {
+                    $table->string('qr_code')->nullable()->after('account');
+                });
+            }
+
+            // 5. Ensure feedbacks table exists for venue performance reviews
+            if (!Schema::hasTable('feedbacks')) {
+                Schema::create('feedbacks', function (Blueprint $table) {
+                    $table->id();
+                    $table->foreignId('booking_id')->constrained()->cascadeOnDelete();
+                    $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+                    $table->foreignId('venue_package_id')->nullable()->constrained()->nullOnDelete();
+                    $table->unsignedTinyInteger('rating')->default(5);
+                    $table->unsignedTinyInteger('cleanliness_rating')->nullable();
+                    $table->unsignedTinyInteger('staff_rating')->nullable();
+                    $table->unsignedTinyInteger('facilities_rating')->nullable();
+                    $table->unsignedTinyInteger('value_rating')->nullable();
+                    $table->text('comment')->nullable();
+                    $table->string('status')->default('approved');
+                    $table->timestamps();
+                });
+            }
+
             $this->syncChatBotData();
         } catch (\Throwable $e) {
             // Continue gracefully

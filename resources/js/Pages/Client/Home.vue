@@ -1,7 +1,7 @@
 <script setup>
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import Modal from "@/Components/Modal.vue";
-import { Head, Link, usePage } from "@inertiajs/vue3";
+import { Head, Link, usePage, useForm } from "@inertiajs/vue3";
 import { ref, computed } from "vue";
 
 const page = usePage();
@@ -249,6 +249,76 @@ const pendingCount = computed(
 const confirmedCount = computed(
     () => bookings.value.filter((b) => b.status === "confirmed" || b.status === "completed").length,
 );
+
+// ── E-Receipt Modal State ──
+const showReceiptModal = ref(false);
+const activeReceiptBooking = ref(null);
+
+const openReceiptModal = (b) => {
+    activeReceiptBooking.value = b;
+    showReceiptModal.value = true;
+};
+
+const closeReceiptModal = () => {
+    showReceiptModal.value = false;
+    setTimeout(() => {
+        activeReceiptBooking.value = null;
+    }, 200);
+};
+
+const printReceipt = () => {
+    window.print();
+};
+
+// ── Venue Performance Feedback Modal State ──
+const showFeedbackModal = ref(false);
+const activeFeedbackBooking = ref(null);
+
+const feedbackForm = useForm({
+    rating: 5,
+    cleanliness_rating: 5,
+    staff_rating: 5,
+    facilities_rating: 5,
+    value_rating: 5,
+    comment: "",
+});
+
+const openFeedbackModal = (b) => {
+    activeFeedbackBooking.value = b;
+    if (b.feedback) {
+        feedbackForm.rating = b.feedback.rating || 5;
+        feedbackForm.cleanliness_rating = b.feedback.cleanliness_rating || 5;
+        feedbackForm.staff_rating = b.feedback.staff_rating || 5;
+        feedbackForm.facilities_rating = b.feedback.facilities_rating || 5;
+        feedbackForm.value_rating = b.feedback.value_rating || 5;
+        feedbackForm.comment = b.feedback.comment || "";
+    } else {
+        feedbackForm.reset();
+        feedbackForm.rating = 5;
+        feedbackForm.cleanliness_rating = 5;
+        feedbackForm.staff_rating = 5;
+        feedbackForm.facilities_rating = 5;
+        feedbackForm.value_rating = 5;
+    }
+    showFeedbackModal.value = true;
+};
+
+const closeFeedbackModal = () => {
+    showFeedbackModal.value = false;
+    setTimeout(() => {
+        activeFeedbackBooking.value = null;
+    }, 200);
+};
+
+const submitFeedback = () => {
+    if (!activeFeedbackBooking.value) return;
+    feedbackForm.post(route('client.feedback.store', activeFeedbackBooking.value.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            closeFeedbackModal();
+        },
+    });
+};
 </script>
 
 <template>
@@ -591,8 +661,8 @@ const confirmedCount = computed(
                         <div class="space-y-3">
                             <!-- Ref & Status -->
                             <div class="flex items-center justify-between gap-2">
-                                <span class="font-mono text-xs font-bold text-sky-800 bg-sky-50 px-2.5 py-1 rounded-md border border-sky-100">
-                                    REF #{{ b.booking_ref || b.id }}
+                                <span class="font-mono text-xs font-black text-sky-900 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200">
+                                    REF: {{ b.booking_ref || b.id }}
                                 </span>
                                 <span
                                     :class="[
@@ -625,6 +695,14 @@ const confirmedCount = computed(
                                     <span class="font-bold text-slate-800">{{ formatDate(b.date) }}</span>
                                 </div>
 
+                                <div v-if="b.time_slot" class="flex items-center justify-between text-slate-600">
+                                    <span class="flex items-center gap-1.5">
+                                        <font-awesome-icon icon="fa-solid fa-clock" class="text-slate-400" />
+                                        <span>Schedule / Shift:</span>
+                                    </span>
+                                    <span class="font-bold text-slate-800">{{ b.time_slot }}</span>
+                                </div>
+
                                 <div v-if="b.guests" class="flex items-center justify-between text-slate-600">
                                     <span class="flex items-center gap-1.5">
                                         <font-awesome-icon icon="fa-solid fa-users" class="text-slate-400" />
@@ -633,22 +711,83 @@ const confirmedCount = computed(
                                     <span class="font-bold text-slate-800">{{ b.guests }} pax</span>
                                 </div>
                             </div>
+
+                            <!-- Financial Breakdown Ledger -->
+                            <div class="p-3.5 rounded-2xl bg-gradient-to-br from-slate-50 to-sky-50/50 border border-sky-100 space-y-2 text-xs">
+                                <div class="flex items-center justify-between text-slate-600">
+                                    <span class="text-slate-500">50% Downpayment Paid:</span>
+                                    <span class="font-mono font-bold text-emerald-700">
+                                        ₱{{ Number(b.downpayment_paid || (b.total_amount * 0.5) || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 }) }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center justify-between text-slate-600">
+                                    <span class="text-slate-500">Remaining Balance:</span>
+                                    <span class="font-mono font-bold text-orange-600">
+                                        ₱{{ Number(b.remaining_balance || (b.total_amount * 0.5) || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 }) }}
+                                    </span>
+                                </div>
+                                <div class="pt-1.5 border-t border-slate-200/60 flex items-center justify-between text-[11px]">
+                                    <span class="text-slate-400 font-mono uppercase">Payment Method</span>
+                                    <span class="font-bold text-slate-700 flex items-center gap-1">
+                                        <font-awesome-icon icon="fa-solid fa-qrcode" class="text-blue-500" />
+                                        {{ b.payment_method || 'GCash' }}
+                                        <span v-if="b.payment_transaction_ref" class="font-mono text-[10px] text-slate-400 font-normal">
+                                            (Ref: {{ b.payment_transaction_ref }})
+                                        </span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Feedback Status Preview (if rated) -->
+                            <div v-if="b.feedback" class="p-3 rounded-2xl bg-amber-50/70 border border-amber-200 text-xs">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="font-bold text-amber-900 flex items-center gap-1">
+                                        <span>⭐ Your Rating:</span>
+                                        <span class="font-black">{{ b.feedback.rating }}/5 Stars</span>
+                                    </span>
+                                    <button @click="openFeedbackModal(b)" class="text-[11px] font-bold text-amber-700 hover:text-amber-900 underline">
+                                        Edit Review
+                                    </button>
+                                </div>
+                                <p v-if="b.feedback.comment" class="text-slate-600 italic text-[11px] line-clamp-2">
+                                    "{{ b.feedback.comment }}"
+                                </p>
+                            </div>
                         </div>
 
-                        <!-- Amount & Action -->
-                        <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
-                            <div>
-                                <span class="text-[10px] font-mono uppercase text-slate-400 block">Total Amount</span>
-                                <span class="font-display font-black text-lg text-sky-950">
-                                    ₱{{ Number(b.total_amount || b.total_payment || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 }) }}
-                                </span>
+                        <!-- Amount & Action Buttons -->
+                        <div class="pt-3 border-t border-slate-100 space-y-2.5">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <span class="text-[10px] font-mono uppercase text-slate-400 block">Total Package Value</span>
+                                    <span class="font-display font-black text-xl text-sky-950">
+                                        ₱{{ Number(b.total_amount || b.total_payment || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 }) }}
+                                    </span>
+                                </div>
+
+                                <!-- Action 1: View E-Receipt Button -->
+                                <button
+                                    type="button"
+                                    @click="openReceiptModal(b)"
+                                    class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-sky-50 hover:text-sky-900 text-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs"
+                                    title="View Electronic Receipt and Booking Voucher"
+                                >
+                                    <font-awesome-icon icon="fa-solid fa-receipt" class="text-sky-600" />
+                                    <span>E-Receipt</span>
+                                </button>
                             </div>
-                            <Link
-                                :href="route('client.booking.index')"
-                                class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-sky-50 hover:text-sky-900 text-slate-700 text-xs font-bold transition-all"
-                            >
-                                View Details
-                            </Link>
+
+                            <!-- Action 2: Rate Venue Experience (For Completed bookings without review) -->
+                            <div v-if="b.status === 'completed' && !b.feedback">
+                                <button
+                                    type="button"
+                                    @click="openFeedbackModal(b)"
+                                    class="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-1.5"
+                                >
+                                    <font-awesome-icon icon="fa-solid fa-star" />
+                                    <span>Rate Venue Experience & Performance</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -782,6 +921,289 @@ const confirmedCount = computed(
                         Proceed to Reservation
                     </Link>
                 </div>
+            </div>
+        </Modal>
+
+        <!-- ── DIGITAL E-RECEIPT / BOARDING VOUCHER MODAL ── -->
+        <Modal :show="showReceiptModal" @close="closeReceiptModal" max-width="2xl">
+            <div v-if="activeReceiptBooking" class="p-6 sm:p-8 space-y-6 print:p-0">
+                <!-- Receipt Header (Nautical Ticket Style) -->
+                <div class="flex items-start justify-between border-b-2 border-dashed border-slate-200 pb-5">
+                    <div class="space-y-1">
+                        <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-sky-900 text-white font-mono text-[10px] font-bold uppercase tracking-widest">
+                            <span>🚢 BUTAL SHIP HAUZ</span>
+                        </div>
+                        <h3 class="font-display font-black text-2xl text-sky-950">Official Reservation Voucher</h3>
+                        <p class="text-xs text-slate-500">
+                            Sitio Capawan, Poblacion, Talibon, Bohol • Hotlines: 0920 713 9299 / 0930 903 6834
+                        </p>
+                    </div>
+                    <button
+                        @click="closeReceiptModal"
+                        class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors print:hidden"
+                    >
+                        <font-awesome-icon icon="fa-solid fa-xmark" />
+                    </button>
+                </div>
+
+                <!-- Reference & Status Strip -->
+                <div class="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-sky-50/70 border border-sky-100 text-xs">
+                    <div>
+                        <span class="font-mono text-[10px] uppercase text-slate-400 font-bold block">Booking Reference</span>
+                        <span class="font-mono text-base font-black text-sky-950">
+                            {{ activeReceiptBooking.booking_ref || activeReceiptBooking.id }}
+                        </span>
+                    </div>
+                    <div>
+                        <span class="font-mono text-[10px] uppercase text-slate-400 font-bold block">Passenger / Booker</span>
+                        <span class="font-bold text-slate-800">{{ user?.name || "Valued Guest" }}</span>
+                    </div>
+                    <div>
+                        <span class="font-mono text-[10px] uppercase text-slate-400 font-bold block">Reservation Status</span>
+                        <span :class="['px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border', getStatus(activeReceiptBooking.status).badge]">
+                            {{ getStatus(activeReceiptBooking.status).label }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Event Itinerary Details -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                    <div class="space-y-1">
+                        <span class="text-slate-400 uppercase font-mono text-[10px] block">Event Package</span>
+                        <span class="font-bold text-slate-800 block">{{ activeReceiptBooking.package }}</span>
+                    </div>
+                    <div class="space-y-1">
+                        <span class="text-slate-400 uppercase font-mono text-[10px] block">Event Type</span>
+                        <span class="font-bold text-slate-800 block">{{ activeReceiptBooking.event_type }}</span>
+                    </div>
+                    <div class="space-y-1">
+                        <span class="text-slate-400 uppercase font-mono text-[10px] block">Event Date</span>
+                        <span class="font-bold text-sky-950 block">{{ formatDate(activeReceiptBooking.date) }}</span>
+                    </div>
+                    <div class="space-y-1">
+                        <span class="text-slate-400 uppercase font-mono text-[10px] block">Time Shift</span>
+                        <span class="font-bold text-sky-950 block">{{ activeReceiptBooking.time_slot || 'Confirmed Shift' }}</span>
+                    </div>
+                </div>
+
+                <!-- Financial Ledger Breakdown Table -->
+                <div class="rounded-2xl border border-slate-200 overflow-hidden text-xs">
+                    <div class="bg-slate-100 px-4 py-2.5 font-mono font-bold uppercase tracking-wider text-slate-600 flex justify-between">
+                        <span>Description</span>
+                        <span>Amount (PHP)</span>
+                    </div>
+                    <div class="p-4 space-y-2.5 bg-white">
+                        <div class="flex justify-between text-slate-700">
+                            <span>Venue Deck Reservation ({{ activeReceiptBooking.package }})</span>
+                            <span class="font-mono font-bold">₱{{ Number(activeReceiptBooking.total_amount || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 }) }}</span>
+                        </div>
+                        <div class="pt-2 border-t border-slate-100 flex justify-between text-emerald-700 font-bold">
+                            <span class="flex items-center gap-1.5">
+                                <font-awesome-icon icon="fa-solid fa-circle-check" />
+                                <span>50% Downpayment (Paid via {{ activeReceiptBooking.payment_method || 'GCash' }})</span>
+                            </span>
+                            <span class="font-mono">- ₱{{ Number(activeReceiptBooking.downpayment_paid || (activeReceiptBooking.total_amount * 0.5) || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 }) }}</span>
+                        </div>
+                        <div v-if="activeReceiptBooking.payment_transaction_ref" class="text-[11px] text-slate-400 pl-5 font-mono">
+                            Payment Ref: {{ activeReceiptBooking.payment_transaction_ref }}
+                        </div>
+                        <div class="pt-2 border-t-2 border-dashed border-slate-200 flex justify-between items-center text-sm">
+                            <span class="font-bold text-orange-600">Remaining Balance Due on Event:</span>
+                            <span class="font-display font-black text-lg text-orange-600">
+                                ₱{{ Number(activeReceiptBooking.remaining_balance || (activeReceiptBooking.total_amount * 0.5) || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 }) }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inclusions & Important Notices -->
+                <div class="p-3.5 rounded-xl bg-amber-50/60 border border-amber-200 text-xs text-amber-900 space-y-1 leading-relaxed">
+                    <p class="font-bold flex items-center gap-1">
+                        <font-awesome-icon icon="fa-solid fa-circle-info" />
+                        <span>Voyage Guidelines & Venue Inclusions:</span>
+                    </p>
+                    <p class="text-[11px]">
+                        • Ingress: Complimentary 2 hours before event start for setup and food styling. Egress: 1 hour.<br/>
+                        • Power Assurance: 100% automatic heavy-duty commercial backup generator on standby.<br/>
+                        • Present this e-receipt screenshot or reference number upon entry at Sitio Capawan, Talibon.
+                    </p>
+                </div>
+
+                <!-- Modal Actions -->
+                <div class="pt-4 border-t border-slate-100 flex items-center justify-between print:hidden">
+                    <button
+                        @click="closeReceiptModal"
+                        class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors"
+                    >
+                        Close
+                    </button>
+                    <button
+                        @click="printReceipt"
+                        class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-sky-900 hover:bg-sky-950 text-white text-xs font-bold shadow-sm transition-all"
+                    >
+                        <font-awesome-icon icon="fa-solid fa-print" />
+                        <span>Print / Save PDF</span>
+                    </button>
+                </div>
+            </div>
+        </Modal>
+
+        <!-- ── VENUE PERFORMANCE & FEEDBACK MODAL ── -->
+        <Modal :show="showFeedbackModal" @close="closeFeedbackModal" max-width="lg">
+            <div v-if="activeFeedbackBooking" class="p-6 sm:p-8 space-y-6">
+                <!-- Modal Header -->
+                <div class="flex items-start justify-between border-b border-slate-100 pb-4">
+                    <div>
+                        <div class="inline-flex items-center gap-1.5 text-xs font-mono font-bold uppercase tracking-wider text-orange-500">
+                            <font-awesome-icon icon="fa-solid fa-star" />
+                            <span>Voyage Experience Review</span>
+                        </div>
+                        <h3 class="font-display font-black text-2xl text-sky-950 mt-1">
+                            How was your event at Butal Ship Hauz?
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-1">
+                            {{ activeFeedbackBooking.package }} • {{ formatDate(activeFeedbackBooking.date) }}
+                        </p>
+                    </div>
+                    <button
+                        @click="closeFeedbackModal"
+                        class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors"
+                    >
+                        <font-awesome-icon icon="fa-solid fa-xmark" />
+                    </button>
+                </div>
+
+                <form @submit.prevent="submitFeedback" class="space-y-5">
+                    <!-- Overall Star Rating -->
+                    <div class="text-center py-3 bg-sky-50/60 border border-sky-100 rounded-2xl">
+                        <span class="text-xs font-mono font-bold uppercase text-slate-500 block mb-2">Overall Voyage Rating</span>
+                        <div class="flex items-center justify-center gap-2 text-3xl">
+                            <button
+                                v-for="star in 5"
+                                :key="star"
+                                type="button"
+                                @click="feedbackForm.rating = star"
+                                class="transition-transform hover:scale-125 focus:outline-none"
+                            >
+                                <font-awesome-icon
+                                    icon="fa-solid fa-star"
+                                    :class="star <= feedbackForm.rating ? 'text-amber-400 drop-shadow-xs' : 'text-slate-200'"
+                                />
+                            </button>
+                        </div>
+                        <span class="text-xs font-bold text-sky-900 mt-2 block">
+                            {{
+                                feedbackForm.rating === 5 ? '⭐⭐⭐⭐⭐ Outstanding!' :
+                                feedbackForm.rating === 4 ? '⭐⭐⭐⭐ Great Experience' :
+                                feedbackForm.rating === 3 ? '⭐⭐⭐ Good / Satisfactory' :
+                                feedbackForm.rating === 2 ? '⭐⭐ Needs Improvement' : '⭐ Disappointing'
+                            }}
+                        </span>
+                    </div>
+
+                    <!-- Category Criteria Ratings -->
+                    <div class="space-y-3 pt-2">
+                        <span class="text-xs font-mono font-bold uppercase text-slate-400 block">Performance Breakdown</span>
+
+                        <!-- Cleanliness -->
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+                            <div>
+                                <p class="font-bold text-xs text-slate-800">🧼 Deck Cleanliness & Ambiance</p>
+                                <p class="text-[10px] text-slate-400">Sanitation of restrooms, decks & dining areas</p>
+                            </div>
+                            <div class="flex items-center gap-1 text-sm">
+                                <button
+                                    v-for="s in 5"
+                                    :key="s"
+                                    type="button"
+                                    @click="feedbackForm.cleanliness_rating = s"
+                                    class="hover:scale-110 transition-transform"
+                                >
+                                    <font-awesome-icon
+                                        icon="fa-solid fa-star"
+                                        :class="s <= feedbackForm.cleanliness_rating ? 'text-amber-400' : 'text-slate-200'"
+                                    />
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Staff Hospitality -->
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+                            <div>
+                                <p class="font-bold text-xs text-slate-800">⚓ Crew Hospitality & Assistance</p>
+                                <p class="text-[10px] text-slate-400">Helpfulness and coordination of venue staff</p>
+                            </div>
+                            <div class="flex items-center gap-1 text-sm">
+                                <button
+                                    v-for="s in 5"
+                                    :key="s"
+                                    type="button"
+                                    @click="feedbackForm.staff_rating = s"
+                                    class="hover:scale-110 transition-transform"
+                                >
+                                    <font-awesome-icon
+                                        icon="fa-solid fa-star"
+                                        :class="s <= feedbackForm.staff_rating ? 'text-amber-400' : 'text-slate-200'"
+                                    />
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Sound & Lighting -->
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+                            <div>
+                                <p class="font-bold text-xs text-slate-800">🔊 Sound, Lights & Generator Reliability</p>
+                                <p class="text-[10px] text-slate-400">Audio clarity, mood lighting & uninterrupted power</p>
+                            </div>
+                            <div class="flex items-center gap-1 text-sm">
+                                <button
+                                    v-for="s in 5"
+                                    :key="s"
+                                    type="button"
+                                    @click="feedbackForm.facilities_rating = s"
+                                    class="hover:scale-110 transition-transform"
+                                >
+                                    <font-awesome-icon
+                                        icon="fa-solid fa-star"
+                                        :class="s <= feedbackForm.facilities_rating ? 'text-amber-400' : 'text-slate-200'"
+                                    />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Written Comments / Testimonial -->
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-mono font-bold uppercase text-slate-500">
+                            Your Testimonial / Suggestions
+                        </label>
+                        <textarea
+                            v-model="feedbackForm.comment"
+                            rows="3"
+                            placeholder="Tell us what you loved about your celebration or areas we can improve for future guests..."
+                            class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm resize-none"
+                        ></textarea>
+                    </div>
+
+                    <!-- Submit Actions -->
+                    <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
+                        <button
+                            type="button"
+                            @click="closeFeedbackModal"
+                            class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            :disabled="feedbackForm.processing"
+                            class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-bold shadow-sm transition-all disabled:opacity-50"
+                        >
+                            <font-awesome-icon icon="fa-solid fa-paper-plane" />
+                            <span>{{ feedbackForm.processing ? 'Submitting...' : 'Submit Feedback' }}</span>
+                        </button>
+                    </div>
+                </form>
             </div>
         </Modal>
     </AuthenticatedLayout>

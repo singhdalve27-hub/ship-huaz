@@ -16,6 +16,7 @@ use App\Http\Controllers\SaleController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VenuePackageController;
 use App\Http\Controllers\PostController; // <-- Idinagdag ang PostController
+use App\Http\Controllers\FeedbackController;
 use App\Models\Post; // <-- Idinagdag ang Post Model
 use App\Models\VenuePackage; // <-- Idinagdag ang VenuePackage Model para sa landing page
 use Illuminate\Support\Facades\Route;
@@ -59,6 +60,8 @@ Route::middleware(['auth', 'verified', 'client'])->prefix('client')->name('clien
     Route::prefix('profile')->name('profile.')->group(function () {
         Route::get('/', [ProfileController::class, 'index'])->name('index');
     });
+
+    Route::post('/bookings/{booking}/feedback', [FeedbackController::class, 'store'])->name('feedback.store');
 });
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -142,6 +145,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 Route::middleware('auth')->group(function () {
     Route::put('/update-information', [ProfileController::class, 'updateInformation'])->name('update-information');
     Route::put('/update-credentials', [ProfileController::class, 'updateCredentials'])->name('update-credentials');
+    Route::post('/client/bookings/{booking}/feedback', [FeedbackController::class, 'store'])->name('client.feedback.store');
 });
 
 Route::get('/api/chatbot', [ChatBotController::class, 'index'])->name('chatbot.index');

@@ -18,19 +18,36 @@ class HomeController extends Controller
     {
         $user = Auth::user();
 
-        $bookings = Booking::with(['venuePackage', 'eventType'])
+        $bookings = Booking::with(['venuePackage', 'eventType', 'paymentOption', 'feedback'])
             ->where('user_id', $user->id)
-            ->orderByDesc('date')
-            ->take(10)
+            ->orderByDesc('id')
             ->get()
             ->map(fn (Booking $booking) => [
                 'id' => $booking->id,
-                'package' => $booking->venuePackage->title ?? null,
-                'event_type' => $booking->eventType->title ?? $booking->eventType->name ?? null,
+                'booking_ref' => $booking->booking_ref,
+                'package' => $booking->venuePackage?->title ?? 'Butal Ship Hauz Deck',
+                'event_type' => $booking->eventType?->type ?? $booking->eventType?->title ?? 'Special Event',
                 'status' => $booking->status,
-                'date' => $booking->date->toDateString(),
+                'date' => $booking->date ? (is_string($booking->date) ? $booking->date : $booking->date->toDateString()) : null,
+                'time_slot' => $booking->time_slot,
+                'booking_mode' => $booking->booking_mode ?? 'exclusive',
                 'guests' => $booking->guest_count,
                 'total_amount' => (float) $booking->total_payment,
+                'downpayment_paid' => round((float) $booking->total_payment * 0.5, 2),
+                'remaining_balance' => round((float) $booking->total_payment * 0.5, 2),
+                'payment_method' => $booking->paymentOption?->payment ?? 'GCash',
+                'payment_transaction_ref' => $booking->payment_transaction_ref,
+                'payment_account_number' => $booking->payment_account_number,
+                'feedback' => $booking->feedback ? [
+                    'id' => $booking->feedback->id,
+                    'rating' => $booking->feedback->rating,
+                    'cleanliness_rating' => $booking->feedback->cleanliness_rating,
+                    'staff_rating' => $booking->feedback->staff_rating,
+                    'facilities_rating' => $booking->feedback->facilities_rating,
+                    'comment' => $booking->feedback->comment,
+                    'created_at' => $booking->feedback->created_at?->format('M j, Y'),
+                ] : null,
+                'created_at' => $booking->created_at?->toIso8601String(),
             ]);
 
         $notifications = MessageThread::with('latestMessage')
