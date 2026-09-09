@@ -456,12 +456,12 @@ onUnmounted(() => {
 const contactInfo = ref([
     {
         label: "Venue Location",
-        value: "Butal Ship Hauz, San Roque, Talibon, Bohol, Philippines",
+        value: "Butal Ship Hauz, Capawan, Talibon, Bohol, Philippines",
         icon: "fa-solid fa-location-dot",
     },
     {
         label: "Reservations Hotline",
-        value: "+63 912 345 6789 / (038) 510 1234",
+        value: "0920 713 9299 / 0930 903 6834",
         icon: "fa-solid fa-phone",
     },
     {
@@ -564,7 +564,7 @@ const socials = ref([
                                 <span class="bg-orange-100 text-orange-700 text-[10px] font-mono px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">Venue</span>
                             </div>
                             <div class="font-mono text-orange-600 text-[11px] font-bold tracking-[.18em] uppercase leading-none mt-1 flex items-center gap-1.5">
-                                <font-awesome-icon icon="fa-solid fa-location-dot" class="text-[9px]" /> Talibon, Bohol
+                                <font-awesome-icon icon="fa-solid fa-location-dot" class="text-[9px]" /> Capawan, Talibon, Bohol
                             </div>
                         </div>
                     </a>
@@ -804,7 +804,7 @@ const socials = ref([
                     <!-- Search CTA Button & Quick Action -->
                     <div class="mt-6 pt-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
                         <div class="text-xs text-slate-600 font-medium text-center sm:text-left">
-                            💡 Need an ocular tour or customized setup? Call reservations at <strong class="text-slate-900 font-bold">+63 912 345 6789</strong>
+                            💡 Need an ocular tour or customized setup? Call reservations at <strong class="text-slate-900 font-bold">0920 713 9299 / 0930 903 6834</strong>
                         </div>
                         <button 
                             @click="handleQuickSearch"
@@ -1411,7 +1411,7 @@ const socials = ref([
                         <div class="p-6 border-b border-slate-200 bg-slate-50 flex items-center justify-between text-slate-900">
                             <div>
                                 <h3 class="font-display font-black text-xl text-slate-900">Interactive Map Location</h3>
-                                <p class="text-slate-600 text-xs font-medium">San Roque, Talibon, Bohol, Philippines</p>
+                                <p class="text-slate-600 text-xs font-medium">Capawan, Talibon, Bohol, Philippines</p>
                             </div>
                             <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full border border-emerald-200">
                                 Open for Ocular
@@ -1424,14 +1424,14 @@ const socials = ref([
                                 frameborder="0"
                                 style="border: 0"
                                 referrerpolicy="no-referrer-when-downgrade"
-                                src="https://www.google.com/maps?q=10.150360879723529,124.32322880265386&z=17&output=embed"
+                                src="https://maps.google.com/maps?q=Butal+Ship+Hauz,+Capawan,+Talibon,+Bohol&t=&z=16&ie=UTF8&iwloc=&output=embed"
                                 allowfullscreen
                             ></iframe>
                         </div>
 
                         <div class="p-4 bg-slate-50 border-t border-slate-200">
                             <a 
-                                href="https://www.google.com/maps?q=10.150360879723529,124.32322880265386"
+                                href="https://www.google.com/maps/search/?api=1&query=Butal+Ship+Hauz,+Capawan,+Talibon,+Bohol"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm py-3.5 rounded-xl transition-all shadow-md"
@@ -1462,7 +1462,7 @@ const socials = ref([
                             </div>
                             <div>
                                 <div class="font-display text-white text-lg font-bold leading-tight">Butal Ship Hauz</div>
-                                <div class="font-mono text-amber-400 text-[10px] font-bold tracking-widest uppercase">Talibon, Bohol</div>
+                                <div class="font-mono text-amber-400 text-[10px] font-bold tracking-widest uppercase">Capawan, Talibon, Bohol</div>
                             </div>
                         </div>
 
@@ -1503,7 +1503,7 @@ const socials = ref([
 
                 <div class="pt-8 border-t border-slate-800 text-xs text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-4 font-medium">
                     <p>© {{ new Date().getFullYear() }} Butal Ship Hauz Venue & Resort. All rights reserved.</p>
-                    <p class="font-mono text-[11px]">Crafted with pride in Talibon, Bohol, Philippines.</p>
+                    <p class="font-mono text-[11px]">Crafted with pride in Capawan, Talibon, Bohol, Philippines.</p>
                 </div>
 
             </div>
