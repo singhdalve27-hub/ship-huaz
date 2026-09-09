@@ -246,8 +246,8 @@ const executeTrackBooking = async () => {
     }
 };
 
-// ── Smart Text Input & Keyword Matcher ──
-const handleUserTextSubmit = () => {
+// ── Smart Text Input & Universal QA Knowledge Base Search ──
+const handleUserTextSubmit = async () => {
     const text = userInputText.value.trim();
     if (!text) return;
 
@@ -256,11 +256,130 @@ const handleUserTextSubmit = () => {
     chatTyping.value = true;
     scrollChat();
 
-    setTimeout(() => {
+    const lower = text.toLowerCase();
+
+    // 1. Language switch triggers
+    if (lower === "tagalog" || lower === "filipino" || lower.includes("mag-tagalog") || lower.includes("tagalog please") || lower.includes("tagalog po")) {
+        chatTyping.value = false;
+        currentLang.value = "tl";
+        chatMessages.value.push({
+            from: "bot",
+            text: "Naka-set na po ang wika sa Tagalog. Paano ka namin matutulungan sa Butal Ship Hauz?"
+        });
+        scrollChat();
+        return;
+    } else if (lower === "bisaya" || lower === "cebuano" || lower.includes("bisaya please") || lower.includes("pag-bisaya")) {
+        chatTyping.value = false;
+        currentLang.value = "ceb";
+        chatMessages.value.push({
+            from: "bot",
+            text: "Gi-set na ang pinulongan sa Bisaya. Unsay among ikatabang kanimo sa Butal Ship Hauz?"
+        });
+        scrollChat();
+        return;
+    } else if (lower === "english" || lower.includes("english please")) {
+        chatTyping.value = false;
+        currentLang.value = "en";
+        chatMessages.value.push({
+            from: "bot",
+            text: "Language switched to English. How may our crew assist you today?"
+        });
+        scrollChat();
+        return;
+    }
+
+    // 2. Direct Widget Intent: Check Date
+    if (
+        lower === "check date" || lower === "available date" || lower === "petsa" || lower === "schedule" || lower === "slot" ||
+        (lower.includes("check") && (lower.includes("date") || lower.includes("availability") || lower.includes("petsa")))
+    ) {
+        chatTyping.value = false;
+        chatMessages.value.push({
+            from: "bot",
+            text: "Sure! Please pick a date below to check availability for exclusive events or visitor passes:",
+            custom_widget: "date_checker"
+        });
+        scrollChat();
+        return;
+    }
+
+    // 3. Direct Widget Intent: Track Booking
+    if (
+        lower.startsWith("bsh-") ||
+        (lower.includes("track") && (lower.includes("booking") || lower.includes("status") || lower.includes("reference")))
+    ) {
+        chatTyping.value = false;
+        if (lower.startsWith("bsh-")) {
+            trackInputVal.value = text.trim();
+        }
+        chatMessages.value.push({
+            from: "bot",
+            text: "Please enter your Booking Reference (e.g., BSH-XXXXXXXX) or your contact phone number below:",
+            custom_widget: "booking_tracker"
+        });
+        if (lower.startsWith("bsh-")) {
+            executeTrackBooking();
+        }
+        scrollChat();
+        return;
+    }
+
+    // 4. Send freeform question to the Backend Universal QA Engine (/api/chatbot/ask)
+    try {
+        const apiUrl = (import.meta.env.VITE_APP_URL ? import.meta.env.VITE_APP_URL : "") + `/api/chatbot/ask?question=${encodeURIComponent(text)}`;
+        const res = await fetch(apiUrl);
+        if (!res.ok) throw new Error("Server response not ok");
+        const data = await res.json();
+
+        chatTyping.value = false;
+
+        if (data.answered) {
+            chatMessages.value.push({
+                from: "bot",
+                text: data.answer,
+                action_buttons: data.action_buttons || []
+            });
+        } else {
+            // Check local nodes as secondary fallback
+            let matched = null;
+            for (const id in nodes.value) {
+                if (nodes.value[id].node_key.toLowerCase().includes(lower) || lower.includes(nodes.value[id].node_key.toLowerCase())) {
+                    matched = nodes.value[id];
+                    break;
+                }
+            }
+
+            if (matched) {
+                chatMessages.value.push({
+                    from: "bot",
+                    text: matched.message,
+                    images: matched.images || [],
+                    dynamic_data: matched.dynamic_data || null,
+                    action_buttons: matched.options ? matched.options.map(opt => ({
+                        label: opt.label,
+                        custom_action: opt.custom_action || null,
+                        next_node_id: opt.next_node_id || null
+                    })) : []
+                });
+            } else {
+                chatMessages.value.push({
+                    from: "bot",
+                    text: data.message || "I'm sorry, I didn't quite catch that. You can ask me anything about our venue rates, packages, generator, parking, entrance fee, corkage, location, rooms, or contact our crew directly:",
+                    action_buttons: data.action_buttons || [
+                        { label: "📅 Check Date Availability", custom_action: "date_checker" },
+                        { label: "🔍 Track Booking Status", custom_action: "booking_tracker" },
+                        { label: "🏠 Back to Main Menu", custom_action: "main_menu" },
+                        { label: "📞 Call Hotline (0920 713 9299)", href: "tel:09207139299" },
+                    ]
+                });
+            }
+        }
+    } catch (err) {
         chatTyping.value = false;
         processKeywordIntent(text);
+    } finally {
         scrollChat();
-    }, 450);
+    }
 };
 
 const processKeywordIntent = (text) => {
