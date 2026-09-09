@@ -1,7 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { Link, usePage } from "@inertiajs/vue3";
-import ChatBot from "@/Components/ChatBot.vue";
 
 const page = usePage();
 
@@ -611,9 +610,6 @@ const socials = [
                 </div>
             </div>
         </footer>
-
-        <!-- Floating Interactive Concierge Widget -->
-        <ChatBot />
 
     </div>
 </template>
