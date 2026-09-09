@@ -1,0 +1,1 @@
+function e(){return{formatDate:e=>new Date(e).toLocaleDateString(`en-PH`,{year:`numeric`,month:`short`,day:`numeric`}),formatAmount:e=>new Intl.NumberFormat(`en-PH`,{style:`currency`,currency:`PHP`,minimumFractionDigits:0}).format(e),formatPhone:e=>(e=e.toString().trim(),e.length===10?`0${e}`:e)}}export{e as t};
