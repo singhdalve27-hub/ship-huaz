@@ -32,6 +32,11 @@ Route::get('/', function () {
     ]);
 })->name('landing-page');
 
+// Direct booking route that safely forwards query parameters to client booking wizard
+Route::get('/booking', function (\Illuminate\Http\Request $request) {
+    return redirect()->route('client.booking.index', $request->query());
+})->name('booking.redirect');
+
 Route::middleware(['auth', 'verified', 'client'])->prefix('client')->name('client.')->group(function () {
     Route::get('/home', [HomeController::class, 'index'])->name('home');
 

@@ -180,7 +180,7 @@ class ChatBotController extends Controller
         if (!$booking) {
             return response()->json([
                 'found'   => false,
-                'message' => "Walang natagpuang reservation para sa '{$query}'. Pakisuri kung tama ang Booking Reference code (BSH-...) o cellphone number.",
+                'message' => "No reservation found matching '{$query}'. Please check your Booking Reference code (e.g., BSH-...) or registered phone number.",
             ]);
         }
 

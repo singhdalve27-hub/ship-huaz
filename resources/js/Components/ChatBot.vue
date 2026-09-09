@@ -10,19 +10,19 @@ const mainNodeId = ref(null);
 const loading = ref(true);
 const error = ref(false);
 
-// ── Multi-language support (Tagalog, Bisaya, English) ──
-const currentLang = ref('tl'); // 'tl' | 'ceb' | 'en'
+// ── Multi-language support (English as primary/default) ──
+const currentLang = ref('en'); // 'en' | 'tl' | 'ceb'
 
 const langGreetings = {
+    en: "Ahoy! Welcome to Butal Ship Hauz in Capawan, Talibon, Bohol! 🚢 How may our crew assist you today?",
     tl: "Ahoy! Maligayang pagdating sa Butal Ship Hauz (Capawan, Talibon, Bohol)! 🚢 Paano ka namin matutulungan ngayong araw?",
     ceb: "Ahoy! Maayong pag-abot sa Butal Ship Hauz (Capawan, Talibon, Bohol)! 🚢 Unsay among ikatabang kanimo karong adlawa?",
-    en: "Ahoy! Welcome to Butal Ship Hauz (Capawan, Talibon, Bohol)! 🚢 How may our crew assist you today?",
 };
 
 const cycleLanguage = () => {
-    if (currentLang.value === 'tl') currentLang.value = 'ceb';
-    else if (currentLang.value === 'ceb') currentLang.value = 'en';
-    else currentLang.value = 'tl';
+    if (currentLang.value === 'en') currentLang.value = 'tl';
+    else if (currentLang.value === 'tl') currentLang.value = 'ceb';
+    else currentLang.value = 'en';
 
     chatMessages.value.push({
         from: 'bot',
@@ -31,7 +31,7 @@ const cycleLanguage = () => {
     scrollChat();
 };
 
-// ── Formatter para sa mga presyo ──
+// ── Price Formatter ──
 const fmtPrice = (val) => "₱" + Number(val || 0).toLocaleString("en-PH");
 
 // ── Interactive Widgets State ──
@@ -47,7 +47,7 @@ const trackInputVal = ref("");
 const trackLoading = ref(false);
 const trackResult = ref(null);
 
-// ── Reusable function para kumuha ng LIVE data mula sa Backend ──
+// ── Reusable function to fetch LIVE data from Backend ──
 const fetchChatbotData = async (isInitial = false) => {
     if (isInitial) loading.value = true;
     try {
@@ -70,18 +70,18 @@ const fetchChatbotData = async (isInitial = false) => {
             error.value = true;
             chatMessages.value = [{
                 from: "bot",
-                text: "Sorry, I'm having trouble connecting to the crew server. Please try again later or call 0920 713 9299.",
+                text: "Sorry, I am having trouble connecting to the crew server. Please try again shortly or call our hotline at 0920 713 9299.",
             }];
         }
     }
 };
 
-// ── Magsimula o mag-reset ng chat ──
+// ── Start or restart conversation ──
 const startConversation = () => {
     chatMessages.value = [];
     const main = nodes.value[mainNodeId.value];
     
-    // Greeting with active language
+    // Greeting in active language (Default English)
     const greetingText = langGreetings[currentLang.value] || (main ? main.message : "Welcome to Butal Ship Hauz!");
 
     chatMessages.value.push({ 
@@ -93,15 +93,15 @@ const startConversation = () => {
     
     // Top interactive actions + database options
     const interactiveOptions = [
-        { label: "📅 I-check ang Petsa / Slot Availability", custom_action: "date_checker" },
-        { label: "🔍 I-track ang Aking Booking Status", custom_action: "booking_tracker" },
+        { label: "📅 Check Date Availability", custom_action: "date_checker" },
+        { label: "🔍 Track My Booking Status", custom_action: "booking_tracker" },
     ];
 
     const dbOptions = main && main.options ? main.options : [];
     
     chatMessages.value.push({
         from: "options",
-        label: "Pangunahing Menu / Main Menu",
+        label: "Main Menu",
         options: [...interactiveOptions, ...dbOptions],
     });
 };
@@ -112,25 +112,23 @@ const resetChat = async () => {
     await fetchChatbotData(true);
 };
 
-// Fetch sa simula
+// Fetch on mount
 onMounted(() => {
     fetchChatbotData(true);
 });
 
 // ── Option Click Handler ──
 async function handleOption(option) {
-    // Check if custom action
     if (option.custom_action) {
         handleCustomAction(option.custom_action);
         return;
     }
 
-    // 1. I-post ang pinili ng user
     chatMessages.value.push({ from: "user", text: option.label });
     chatTyping.value = true;
     scrollChat();
 
-    // 2. Kumuha ng pinaka-latest na data (LIVE UPDATE)
+    // Fetch latest live data before replying
     await fetchChatbotData(false);
 
     setTimeout(() => {
@@ -154,12 +152,11 @@ async function handleOption(option) {
             chatCurrentNodeId.value = targetId;
 
             if (targetNode.options && targetNode.options.length > 0) {
-                // If it's main node, also include the interactive actions
                 let opts = targetNode.options;
                 if (targetId === mainNodeId.value) {
                     opts = [
-                        { label: "📅 I-check ang Petsa / Slot Availability", custom_action: "date_checker" },
-                        { label: "🔍 I-track ang Aking Booking Status", custom_action: "booking_tracker" },
+                        { label: "📅 Check Date Availability", custom_action: "date_checker" },
+                        { label: "🔍 Track My Booking Status", custom_action: "booking_tracker" },
                         ...opts
                     ];
                 }
@@ -172,34 +169,30 @@ async function handleOption(option) {
         } else {
             chatMessages.value.push({ 
                 from: "bot", 
-                text: "Oops! This option seems to have been updated by our crew. Let's return to the main menu!" 
+                text: "This option seems to have been updated by our crew. Let's return to the main menu!" 
             });
             setTimeout(startConversation, 1500);
         }
 
         scrollChat();
-    }, 500);
+    }, 450);
 }
 
 // ── Custom Actions Handler ──
 function handleCustomAction(action) {
     if (action === "date_checker") {
-        chatMessages.value.push({ from: "user", text: "📅 I-check ang Petsa / Slot Availability" });
+        chatMessages.value.push({ from: "user", text: "📅 Check Date Availability" });
         chatMessages.value.push({
             from: "bot",
-            text: currentLang.value === 'ceb'
-                ? "Palihug pilia ang petsa sa ubos aron ma-check nato kung bakante pa ang Butal Ship Hauz:"
-                : "Pumili ng petsa sa ibaba upang mai-check natin kung may bakanteng slot sa Butal Ship Hauz:",
+            text: "Please select a date below to check if the venue has an open slot:",
             custom_widget: "date_checker"
         });
         scrollChat();
     } else if (action === "booking_tracker") {
-        chatMessages.value.push({ from: "user", text: "🔍 I-track ang Aking Booking Status" });
+        chatMessages.value.push({ from: "user", text: "🔍 Track My Booking Status" });
         chatMessages.value.push({
             from: "bot",
-            text: currentLang.value === 'ceb'
-                ? "I-enter ang imong Booking Reference Number (pananglitan BSH-XXXXXXXX) o ang cellphone number nga gigamit sa reserbasyon:"
-                : "I-enter ang iyong Booking Reference Number (hal. BSH-XXXXXXXX) o ang cellphone number na ginamit sa reserbasyon:",
+            text: "Please enter your Booking Reference Number (e.g. BSH-XXXXXXXX) or registered phone number:",
             custom_widget: "booking_tracker"
         });
         scrollChat();
@@ -223,7 +216,7 @@ const executeDateCheck = async () => {
     } catch (e) {
         dateCheckResult.value = {
             success: false,
-            message: "Hindi ma-access ang calendar service sa ngayon. Pakisubukan muli o tumawag sa 0920 713 9299."
+            message: "Unable to access the calendar service right now. Please try again or call 0920 713 9299."
         };
     } finally {
         dateCheckLoading.value = false;
@@ -245,7 +238,7 @@ const executeTrackBooking = async () => {
     } catch (e) {
         trackResult.value = {
             found: false,
-            message: "Hindi ma-connect sa booking database sa ngayon. Pakisubukan muli mamaya."
+            message: "Unable to connect to the booking database. Please try again shortly."
         };
     } finally {
         trackLoading.value = false;
@@ -274,107 +267,101 @@ const processKeywordIntent = (text) => {
     const lower = text.toLowerCase();
 
     // 1. Date Check Intent
-    if (lower.includes("date") || lower.includes("petsa") || lower.includes("available") || lower.includes("bakante") || lower.includes("adlaw") || lower.includes("open") || lower.includes("kelan")) {
+    if (lower.includes("date") || lower.includes("petsa") || lower.includes("available") || lower.includes("bakante") || lower.includes("adlaw") || lower.includes("open") || lower.includes("schedule") || lower.includes("slot")) {
         chatMessages.value.push({
             from: "bot",
-            text: currentLang.value === 'ceb'
-                ? "Sige! Palihug pilia ang petsa sa ubos aron ma-check nato kung bakante pa:"
-                : "Sige! Pumili ng petsa sa ibaba upang mai-check natin kung may bakanteng slot:",
+            text: "Sure! Please pick a date below to check availability for exclusive events or visitor passes:",
             custom_widget: "date_checker"
         });
         return;
     }
 
     // 2. Track Booking Intent
-    if (lower.includes("track") || lower.includes("status") || lower.includes("reserba") || lower.includes("booking ko") || lower.includes("bsh-") || lower.includes("reperi") || lower.includes("nasaan")) {
+    if (lower.includes("track") || lower.includes("status") || lower.includes("reserba") || lower.includes("booking") || lower.includes("bsh-") || lower.includes("reference") || lower.includes("lookup")) {
         chatMessages.value.push({
             from: "bot",
-            text: currentLang.value === 'ceb'
-                ? "Palihug i-type ang imong Booking Reference Number (pananglitan BSH-XXXXXXXX) o imong cellphone number:"
-                : "Pakisulat ang iyong Booking Reference Number (hal. BSH-XXXXXXXX) o cellphone number:",
+            text: "Please enter your Booking Reference (e.g., BSH-XXXXXXXX) or your contact phone number below:",
             custom_widget: "booking_tracker"
         });
         return;
     }
 
     // 3. Pricing / Rates / Entrance Fee
-    if (lower.includes("magkano") || lower.includes("pila") || lower.includes("price") || lower.includes("presyo") || lower.includes("rate") || lower.includes("entrance") || lower.includes("bayad") || lower.includes("pax") || lower.includes("cost")) {
+    if (lower.includes("price") || lower.includes("rate") || lower.includes("cost") || lower.includes("entrance") || lower.includes("fee") || lower.includes("magkano") || lower.includes("pila") || lower.includes("presyo") || lower.includes("bayad") || lower.includes("pax")) {
         chatMessages.value.push({
             from: "bot",
-            text: currentLang.value === 'ceb'
-                ? "Mao kini ang among mga rates sa Butal Ship Hauz:\n\n🎫 Tour / Visitor Pass: ₱150 kada tawo (Walk-in Ocular Tour)\n🚢 Exclusive Venue Packages: Nagsugod sa ₱5,000 alang sa mga okasyon (Kasal, Debut, Birthday, Reunion).\n\nAduna tay Morning Shift, Afternoon Shift, o Whole Day Exclusive options!"
-                : "Narito ang rates sa Butal Ship Hauz:\n\n🎫 Tour / Visitor Pass: ₱150 per head (Walk-in Ocular Tour)\n🚢 Exclusive Venue Packages: Nagsisimula sa ₱5,000 para sa okasyon (Kasal, Debut, Birthday, Reunion).\n\nMayroon tayong Morning, Afternoon, at Whole Day Exclusive options!",
+            text: "Here are the venue rates at Butal Ship Hauz:\n\n🎫 Tour / Visitor Pass: ₱150 per person (Walk-in Ocular Tour)\n🚢 Exclusive Venue Packages: Starting at ₱5,000 for private occasions (Weddings, Debuts, Birthdays, Reunions, Conferences).\n\nWe provide flexible Morning, Afternoon, and Full Day exclusive deck reservations!",
             action_buttons: [
-                { label: "👉 Mag-Book ng Reservation", href: "/booking?mode=exclusive" },
-                { label: "🎫 Kumuha ng Tour Pass (₱150)", href: "/booking?mode=visitor" },
+                { label: "👉 Book a Reservation", href: "/client/booking?mode=exclusive" },
+                { label: "🎫 Get a Tour Pass (₱150)", href: "/client/booking?mode=visitor" },
             ]
         });
         return;
     }
 
     // 4. Location / Directions / Address
-    if (lower.includes("saan") || lower.includes("asa") || lower.includes("location") || lower.includes("address") || lower.includes("papunta") || lower.includes("direksyon") || lower.includes("capawan") || lower.includes("talibon") || lower.includes("map")) {
+    if (lower.includes("location") || lower.includes("where") || lower.includes("address") || lower.includes("directions") || lower.includes("saan") || lower.includes("asa") || lower.includes("capawan") || lower.includes("talibon") || lower.includes("map") || lower.includes("gps")) {
         chatMessages.value.push({
             from: "bot",
-            text: "📍 Lokasyon ng Venue:\nButal Ship Hauz, Sitio Capawan, Poblacion, Talibon, Bohol, Philippines\n\n🚗 Paano Makapunta:\nMula sa Tagbilaran City o Tubigon/Ubay port, sumakay ng bus o van papuntang Talibon (approx. 2 hours). Sabihin sa driver na ibaba kayo malapit sa Butal Ship Hauz sa Capawan!\n\nI-click ang button sa ibaba para sa live Google Maps GPS Navigation:",
+            text: "📍 Venue Location:\nButal Ship Hauz, Sitio Capawan, Poblacion, Talibon, Bohol, Philippines\n\n🚗 How to Get Here:\nFrom Tagbilaran City, Tubigon Port, or Ubay Port, take a bus or van bound for Talibon (approx. 2 hours). Ask the driver to drop you off near Butal Ship Hauz in Capawan!\n\nClick below to open turn-by-turn Google Maps GPS navigation:",
             action_buttons: [
-                { label: "🗺️ Buksan sa Google Maps (GPS)", href: "https://www.google.com/maps/search/?api=1&query=Butal+Ship+Hauz,+Capawan,+Talibon,+Bohol", external: true },
-                { label: "📞 Tawagan ang Hotline", href: "tel:09207139299" },
+                { label: "🗺️ Open in Google Maps (GPS)", href: "https://www.google.com/maps/search/?api=1&query=Butal+Ship+Hauz,+Capawan,+Talibon,+Bohol", external: true },
+                { label: "📞 Call Hotline (0920 713 9299)", href: "tel:09207139299" },
             ]
         });
         return;
     }
 
     // 5. Corkage / Catering / Food Policy
-    if (lower.includes("corkage") || lower.includes("pagkain") || lower.includes("kaon") || lower.includes("catering") || lower.includes("lechon") || lower.includes("food") || lower.includes("inom") || lower.includes("lutuin")) {
+    if (lower.includes("corkage") || lower.includes("food") || lower.includes("catering") || lower.includes("lechon") || lower.includes("drinks") || lower.includes("pagkain") || lower.includes("kaon")) {
         chatMessages.value.push({
             from: "bot",
-            text: "🍽️ Corkage & Catering Guidelines:\n\n• Outside Catering: Allowed para sa Exclusive Events (maaaring may minimal utility fee depende sa power needs).\n• Lechon & Packed Food: Pinapayagan para sa inyong pagdiriwang.\n• Drinks & Softdrinks: Pinapayagan for private deck events.\n\nPara sa catering assistance at package setups, tumawag sa 0920 713 9299.",
+            text: "🍽️ Corkage & Catering Guidelines:\n\n• Outside Catering: Allowed for Exclusive Events (minimal utility fee may apply based on high-wattage warming equipment).\n• Lechon & Packed Food: Permitted for private gatherings.\n• Drinks & Refreshments: Welcome for private reservations.\n\nFor custom catering recommendations or package inquiries, feel free to call 0920 713 9299.",
             action_buttons: [
-                { label: "📞 Tawagan ang Crew", href: "tel:09207139299" }
+                { label: "📞 Call Crew Hotline", href: "tel:09207139299" }
             ]
         });
         return;
     }
 
     // 6. Contact / Phone / Hotline
-    if (lower.includes("tawag") || lower.includes("phone") || lower.includes("contact") || lower.includes("number") || lower.includes("hotline") || lower.includes("cell") || lower.includes("telepono")) {
+    if (lower.includes("contact") || lower.includes("phone") || lower.includes("hotline") || lower.includes("number") || lower.includes("call") || lower.includes("cell") || lower.includes("tawag")) {
         chatMessages.value.push({
             from: "bot",
-            text: "📞 Opisyal na Contact Hotlines:\n\n• Smart/TNT: 0920 713 9299\n• Globe/TM: 0930 903 6834\n• Email: reservations@butalshiphauz.com.ph\n• Office & Ocular Hours: 8:00 AM – 6:00 PM Araw-araw",
+            text: "📞 Official Contact Hotlines:\n\n• Smart/TNT: 0920 713 9299\n• Globe/TM: 0930 903 6834\n• Email: reservations@butalshiphauz.com.ph\n• Office & Ocular Hours: 8:00 AM – 6:00 PM Daily",
             action_buttons: [
-                { label: "📞 Tawagan Ngayon (0920 713 9299)", href: "tel:09207139299" },
-                { label: "💬 Mag-SMS Text", href: "sms:09207139299" }
+                { label: "📞 Call Now (0920 713 9299)", href: "tel:09207139299" },
+                { label: "💬 Send SMS Text", href: "sms:09207139299" }
             ]
         });
         return;
     }
 
     // 7. Payment / Downpayment
-    if (lower.includes("bayad") || lower.includes("payment") || lower.includes("downpayment") || lower.includes("gcash") || lower.includes("deposit") || lower.includes("bank")) {
+    if (lower.includes("payment") || lower.includes("downpayment") || lower.includes("deposit") || lower.includes("gcash") || lower.includes("bank") || lower.includes("bayad")) {
         chatMessages.value.push({
             from: "bot",
-            text: "💳 Paraan ng Pagbabayad & Downpayment:\n\n• 50% Downpayment ang kinakailangan upang opisyal na ma-block at ma-reserve ang inyong petsa.\n• Tinatanggap ang GCash, Bank Transfer, o Cash on site sa venue office.\n• Ang balance ay binabayaran on the day of the event.",
+            text: "💳 Payment & Reservation Policy:\n\n• A 50% Downpayment is required to officially confirm and lock your date on our booking calendar.\n• We accept GCash, Bank Transfer, and Cash on site at the venue office.\n• The remaining balance can be settled on or before the day of the event.",
             action_buttons: [
-                { label: "👉 Mag-Book ng Reservation", href: "/booking?mode=exclusive" }
+                { label: "👉 Book a Reservation", href: "/client/booking?mode=exclusive" }
             ]
         });
         return;
     }
 
-    // 8. Language triggers
-    if (lower.includes("bisaya") || lower.includes("cebuano")) {
+    // 8. Language switch triggers
+    if (lower.includes("tagalog") || lower.includes("filipino")) {
+        currentLang.value = "tl";
+        chatMessages.value.push({
+            from: "bot",
+            text: "Naka-set na po ang wika sa Tagalog. Paano ka namin matutulungan sa Butal Ship Hauz?"
+        });
+        return;
+    } else if (lower.includes("bisaya") || lower.includes("cebuano")) {
         currentLang.value = "ceb";
         chatMessages.value.push({
             from: "bot",
-            text: "Maayong adlaw! Gi-set na nako ang pinulongan sa Bisaya. Unsay matabang namo sa Butal Ship Hauz?"
-        });
-        return;
-    } else if (lower.includes("english")) {
-        currentLang.value = "en";
-        chatMessages.value.push({
-            from: "bot",
-            text: "Language switched to English. How can the Butal Ship Hauz crew help you today?"
+            text: "Gi-set na ang pinulongan sa Bisaya. Unsay ikatabang namo kanimo sa Butal Ship Hauz?"
         });
         return;
     }
@@ -405,14 +392,12 @@ const processKeywordIntent = (text) => {
     } else {
         chatMessages.value.push({
             from: "bot",
-            text: currentLang.value === 'ceb'
-                ? "Pasensya na, wala nako nakuha ang imong gipangutana. Apan mahimo nimong pilion ang mga opsyon sa ubos o direktang tawagan ang among crew:"
-                : "Pasensya na, medyo hindi ko nakuha ang iyong tanong. Maaari kang pumili sa mga opsyon sa ibaba o direktang tawagan ang aming crew:",
+            text: "I'm sorry, I didn't quite catch that. You may select one of the options below or contact our crew directly:",
             action_buttons: [
-                { label: "📅 I-check ang Date Availability", custom_action: "date_checker" },
-                { label: "🔍 I-track ang Booking Status", custom_action: "booking_tracker" },
-                { label: "🏠 Bumalik sa Main Menu", custom_action: "main_menu" },
-                { label: "📞 Tawagan ang Hotline", href: "tel:09207139299" },
+                { label: "📅 Check Date Availability", custom_action: "date_checker" },
+                { label: "🔍 Track Booking Status", custom_action: "booking_tracker" },
+                { label: "🏠 Back to Main Menu", custom_action: "main_menu" },
+                { label: "📞 Call Hotline (0920 713 9299)", href: "tel:09207139299" },
             ]
         });
     }
@@ -511,9 +496,9 @@ function openChat() {
                         <button 
                             @click="cycleLanguage" 
                             class="bg-sky-800 hover:bg-sky-700 text-amber-300 px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider transition-colors"
-                            :title="'Click to switch language: ' + currentLang.toUpperCase()"
+                            :title="'Language: ' + currentLang.toUpperCase() + ' (click to switch)'"
                         >
-                            {{ currentLang === 'tl' ? '🇵🇭 TL' : currentLang === 'ceb' ? '🏝️ CEB' : '🌐 EN' }}
+                            {{ currentLang === 'en' ? '🌐 EN' : currentLang === 'tl' ? '🇵🇭 TL' : '🏝️ CEB' }}
                         </button>
                     </div>
                 </div>
@@ -624,16 +609,16 @@ function openChat() {
                                             </div>
                                         </div>
 
-                                        <!-- DIRECT BOOKING BUTTONS -->
+                                        <!-- DIRECT BOOKING BUTTONS (Links to client booking) -->
                                         <div class="flex items-center gap-1.5">
                                             <a 
-                                                :href="`/booking?package_id=${pkg.id}&mode=exclusive`"
+                                                :href="`/client/booking?package_id=${pkg.id}&mode=exclusive`"
                                                 class="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-[11px] py-2 px-2.5 rounded-lg text-center transition-all shadow-sm flex items-center justify-center gap-1"
                                             >
-                                                <font-awesome-icon icon="fa-solid fa-calendar-check" class="text-[10px]" /> I-Book ang Package
+                                                <font-awesome-icon icon="fa-solid fa-calendar-check" class="text-[10px]" /> Book Package
                                             </a>
                                             <a 
-                                                href="/booking?mode=visitor"
+                                                href="/client/booking?mode=visitor"
                                                 class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-[11px] py-2 px-2.5 rounded-lg text-center transition-colors border border-amber-200 shrink-0"
                                                 title="Tour / Visitor Pass"
                                             >
@@ -692,15 +677,15 @@ function openChat() {
                                             v-else
                                             class="bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl p-2.5 font-medium leading-tight"
                                         >
-                                            ✅ <strong>Fully Available!</strong> Puwede kayong magpareserba ng Exclusive Event o Visitor Tour Pass para sa petsang ito.
+                                            ✅ <strong>Fully Available!</strong> You can reserve an Exclusive Event or a Visitor Tour Pass for this date.
                                         </div>
 
                                         <a 
                                             v-if="!dateCheckResult.is_past"
-                                            :href="`/booking?date=${dateCheckResult.date}`"
+                                            :href="`/client/booking?date=${dateCheckResult.date}`"
                                             class="block w-full text-center bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black py-2 rounded-xl shadow-sm transition-all"
                                         >
-                                            Mag-Book para sa Petsang Ito
+                                            Book for this Date
                                         </a>
                                     </div>
                                 </div>
@@ -716,7 +701,7 @@ function openChat() {
                                         <input 
                                             type="text" 
                                             v-model="trackInputVal"
-                                            placeholder="e.g. BSH-8A1C5F2B o Cell #"
+                                            placeholder="e.g. BSH-8A1C5F2B or Phone #"
                                             class="flex-1 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:ring-1 focus:ring-orange-500 focus:outline-none"
                                             @keyup.enter="executeTrackBooking"
                                         />
@@ -725,7 +710,7 @@ function openChat() {
                                             :disabled="trackLoading"
                                             class="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold text-xs px-3 py-2 rounded-xl transition-colors shrink-0 shadow-sm"
                                         >
-                                            {{ trackLoading ? '...' : 'Hanapin' }}
+                                            {{ trackLoading ? '...' : 'Track' }}
                                         </button>
                                     </div>
 
@@ -736,7 +721,7 @@ function openChat() {
                                         </div>
                                         <div v-else class="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
                                             <div class="flex items-center justify-between">
-                                                <span class="font-mono text-[10px] font-bold text-slate-400 uppercase">Ref #</span>
+                                                <span class="font-mono text-[10px] font-bold text-slate-400 uppercase">Booking Ref #</span>
                                                 <span class="font-mono text-xs font-black text-sky-900">{{ trackResult.booking_ref }}</span>
                                             </div>
                                             <div class="flex items-center justify-between">
@@ -748,7 +733,7 @@ function openChat() {
                                                 <span class="font-bold text-slate-800">{{ trackResult.event_type }} ({{ trackResult.package_title }})</span>
                                             </div>
                                             <div class="flex items-center justify-between">
-                                                <span class="text-slate-500">Petsa & Oras:</span>
+                                                <span class="text-slate-500">Date & Time:</span>
                                                 <span class="font-bold text-slate-800">{{ trackResult.date }} ({{ trackResult.time_slot }})</span>
                                             </div>
                                             <div class="flex items-center justify-between pt-1 border-t border-slate-200">
@@ -824,7 +809,7 @@ function openChat() {
                         <input
                             v-model="userInputText"
                             type="text"
-                            placeholder="Magtanong o mag-type dito..."
+                            placeholder="Ask a question or type here..."
                             class="flex-1 bg-slate-50 border border-slate-200 focus:bg-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none transition-all"
                         />
                         <button

@@ -597,6 +597,32 @@ const resetForm = () => {
     showForm.value = false;
 };
 
+onMounted(() => {
+    if (typeof window !== "undefined") {
+        const urlParams = new URLSearchParams(window.location.search);
+        const qDate = urlParams.get("date");
+        const qPkg = urlParams.get("package_id");
+        const qMode = urlParams.get("mode");
+
+        if (qDate || qPkg || qMode) {
+            showForm.value = true;
+            if (qDate) {
+                eventDate.value = qDate;
+            }
+            if (qMode && (qMode === "exclusive" || qMode === "visitor")) {
+                bookingMode.value = qMode;
+            }
+            if (qPkg && props.venuePackages) {
+                const pkg = props.venuePackages.find((p) => p.id == qPkg);
+                if (pkg) {
+                    eventType.value = pkg.event_type_id;
+                    selectedPackage.value = pkg.id;
+                }
+            }
+        }
+    }
+});
+
 const form = useForm({
     date: "",
     time_slot: "",
