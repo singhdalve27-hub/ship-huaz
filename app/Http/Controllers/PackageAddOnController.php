@@ -28,10 +28,14 @@ class PackageAddOnController extends Controller
         $request->validate([
             'title' => 'required|min:3|unique:package_add_ons,title',
             'description' => 'required|min:3',
+            'pricing_type' => 'required|in:fixed,per_head', // <-- BAGO
             'price' => 'required|numeric|min:100',
+            'guests' => 'required|numeric|min:1',
+            'total' => 'required|numeric|min:0',
         ]);
 
-        PackageAddOn::create($request->only(['title', 'description', 'price']));
+        // Idinagdag ang 'pricing_type' sa loob ng only() array para isave
+        PackageAddOn::create($request->only(['title', 'description', 'pricing_type', 'price', 'guests', 'total']));
 
         return redirect()->route('admin.package-add-ons.index')->with('success', 'Package Add-on created successfully.');
     }
@@ -44,11 +48,15 @@ class PackageAddOnController extends Controller
         $request->validate([
             'title' => 'required|min:3|unique:package_add_ons,title,' . $packageAddOn->id,
             'description' => 'required|min:3',
+            'pricing_type' => 'required|in:fixed,per_head', // <-- BAGO
             'price' => 'required|numeric|min:100',
+            'guests' => 'required|numeric|min:1',
+            'total' => 'required|numeric|min:0',
             'status' => 'required|in:active,inactive',
         ]);
 
-        $packageAddOn->update($request->only(['title', 'description', 'price', 'status']));
+        // Idinagdag ang 'pricing_type' sa loob ng only() array para i-update
+        $packageAddOn->update($request->only(['title', 'description', 'pricing_type', 'price', 'guests', 'total', 'status']));
 
         return redirect()->route('admin.package-add-ons.index')->with('success', 'Package Add-on updated successfully.');
     }

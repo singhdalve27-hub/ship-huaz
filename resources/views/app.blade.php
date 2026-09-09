@@ -6,6 +6,20 @@
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
+        <script>
+            // Suppress external browser extension runtime errors (e.g. Chrome Web Vitals extension reportAllChanges bug)
+            window.addEventListener('error', function (e) {
+                if (e && (
+                    (e.message && e.message.includes('startTime')) ||
+                    (e.error && e.error.stack && e.error.stack.includes('reportAllChanges'))
+                )) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    return true;
+                }
+            }, true);
+        </script>
+
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />

@@ -102,10 +102,10 @@ defineExpose({ focus: () => searchInput.value?.focus() });
 </script>
 
 <template>
-    <div class="w-full" ref="container">
+    <div class="w-full relative" ref="container">
         <!-- Trigger Box -->
         <div
-            class="min-h-[42px] w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 flex flex-wrap gap-1 items-center cursor-text shadow-sm focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500"
+            class="min-h-[42px] w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 flex flex-wrap gap-1.5 items-center cursor-text shadow-sm focus-within:border-orange-500 focus-within:ring-1 focus-within:ring-orange-500 transition-colors"
             @click="openDropdown"
         >
             <!-- Tags (multiple mode) -->
@@ -113,21 +113,21 @@ defineExpose({ focus: () => searchInput.value?.focus() });
                 <span
                     v-for="(val, index) in (model || [])"
                     :key="val"
-                    class="inline-flex items-center gap-1 bg-indigo-500 text-white text-sm px-2 py-0.5 rounded"
+                    class="inline-flex items-center gap-1.5 bg-sky-100 text-sky-900 border border-sky-200 font-bold tracking-wide text-xs px-2.5 py-1 rounded-full shadow-sm"
                 >
                     {{ selectedLabels[index] }}
                     <button
                         type="button"
-                        class="hover:text-indigo-200 leading-none focus:outline-none"
+                        class="hover:text-red-500 hover:bg-white rounded-full w-[18px] h-[18px] flex items-center justify-center transition-colors focus:outline-none"
                         @click.stop="removeTag(val)"
                     >
-                        &times;
+                        <font-awesome-icon icon="fa-solid fa-xmark" class="text-[10px]" />
                     </button>
                 </span>
             </template>
 
             <!-- Single mode display -->
-            <span v-else-if="model" class="text-sm text-gray-700">
+            <span v-else-if="model" class="text-sm font-medium text-slate-700">
                 {{ normalizedOptions.find(o => o.value === model)?.label || model }}
             </span>
 
@@ -136,7 +136,7 @@ defineExpose({ focus: () => searchInput.value?.focus() });
                 ref="searchInput"
                 v-model="search"
                 type="text"
-                class="flex-1 min-w-[80px] border-0 outline-none ring-0 focus:ring-0 text-sm bg-transparent placeholder-gray-400 p-0"
+                class="flex-1 min-w-[80px] border-0 outline-none ring-0 focus:ring-0 text-sm font-medium bg-transparent placeholder-slate-400 p-0"
                 :placeholder="(!multiple && !model) || (multiple && !(model || []).length) ? placeholder : ''"
                 @focus="isOpen = true"
                 @keydown.escape="closeDropdown"
@@ -154,23 +154,26 @@ defineExpose({ focus: () => searchInput.value?.focus() });
         >
             <ul
                 v-if="isOpen"
-                class="mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-56 overflow-y-auto origin-top"
+                class="absolute z-50 mt-1.5 w-full bg-white border border-slate-200 rounded-md shadow-xl max-h-60 overflow-y-auto origin-top"
             >
                 <li
                     v-for="option in filteredOptions"
                     :key="option.value"
-                    class="px-4 py-2 text-sm cursor-pointer select-none"
+                    class="px-4 py-2.5 text-sm font-medium cursor-pointer select-none transition-colors"
                     :class="{
-                        'bg-indigo-500 text-white': isSelected(option.value),
-                        'text-gray-400 cursor-not-allowed': option.disabled,
-                        'hover:bg-gray-100': !isSelected(option.value) && !option.disabled,
+                        'bg-sky-50 text-sky-900 border-l-4 border-orange-500': isSelected(option.value),
+                        'text-slate-400 cursor-not-allowed': option.disabled,
+                        'text-slate-700 hover:bg-slate-50 hover:text-orange-500 border-l-4 border-transparent': !isSelected(option.value) && !option.disabled,
                     }"
                     @mousedown.prevent="toggleOption(option)"
                 >
-                    {{ option.label }}
+                    <div class="flex items-center justify-between">
+                        <span>{{ option.label }}</span>
+                        <font-awesome-icon v-if="isSelected(option.value)" icon="fa-solid fa-check" class="text-lime-500 text-xs" />
+                    </div>
                 </li>
 
-                <li v-if="filteredOptions.length === 0" class="px-4 py-2 text-sm text-gray-400 italic">
+                <li v-if="filteredOptions.length === 0" class="px-4 py-4 text-sm font-medium text-slate-400 text-center italic">
                     No options found.
                 </li>
             </ul>

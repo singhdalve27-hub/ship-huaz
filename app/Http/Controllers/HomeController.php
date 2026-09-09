@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\MessageThread;
+use App\Models\VenuePackage; // <-- Idinagdag ang VenuePackage Model
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -46,9 +47,15 @@ class HomeController extends Controller
                 'created_at' => $thread->created_at->toIso8601String(),
             ]);
 
+        // Venues with event types for the Feeds tab
+        $venues = VenuePackage::with('eventType')
+            ->where('status', 'active')
+            ->get();
+
         return Inertia::render('Client/Home', [
             'bookings' => $bookings,
             'notifications' => $notifications,
+            'venues' => $venues, // <-- Ipapasa natin dito papunta sa frontend
         ]);
     }
 

@@ -37,12 +37,34 @@ class BookingController extends Controller
                 return $booking;
             });
 
+        // Reserved schedules for availability calendar and client transparency
+        $reservedSchedules = Booking::with('eventType', 'venuePackage')
+            ->whereNotIn('status', ['cancelled'])
+            ->whereDate('date', '>=', Carbon::today()->subDays(1))
+            ->orderBy('date')
+            ->get()
+            ->map(function ($b) {
+                return [
+                    'id'               => $b->id,
+                    'date'             => $b->date->toDateString(),
+                    'time_slot'        => $b->time_slot,
+                    'exact_time'       => $b->exact_time,
+                    'venue_package_id' => $b->venue_package_id,
+                    'venue_title'      => $b->venuePackage->title ?? 'Venue Deck',
+                    'event_type'       => $b->eventType->type ?? $b->eventType->name ?? 'Private Celebration',
+                    'booking_mode'     => $b->booking_mode ?: 'exclusive',
+                    'booker_name'      => $b->guest_first_name . ' ' . (substr($b->guest_last_name ?? '', 0, 1) ? substr($b->guest_last_name ?? '', 0, 1) . '.' : ''),
+                    'status'           => $b->status,
+                ];
+            });
+
         $data = [
-            'bookings'       => $bookings,
-            'eventTypes'     => EventType::where('status', 'active')->get(),
-            'venuePackages'  => VenuePackage::where('status', 'active')->get(),
-            'packageAddOns'  => PackageAddOn::where('status', 'active')->get(),
-            'paymentOptions' => PaymentOption::where('status', 'active')->get(),
+            'bookings'          => $bookings,
+            'reservedSchedules' => $reservedSchedules,
+            'eventTypes'        => EventType::where('status', 'active')->get(),
+            'venuePackages'     => VenuePackage::where('status', 'active')->get(),
+            'packageAddOns'     => PackageAddOn::where('status', 'active')->get(),
+            'paymentOptions'    => PaymentOption::where('status', 'active')->get(),
         ];
 
         return Inertia::render('Client/Booking', $data);
@@ -77,32 +99,10 @@ class BookingController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'date' => [
-                'required',
-                'date',
-                'after_or_equal:today',
-                function ($attribute, $value, $fail) use ($request) {
-                    $requestedSlot = $request->time_slot;
-                    $date = $value;
-                    $fullDay   = '8:00 AM – 5:00 PM';
-                    $morning   = '8:00 AM – 12:00 PM';
-                    $afternoon = '1:00 PM – 5:00 PM';
-                    $conflictingSlots = match ($requestedSlot) {
-                        $fullDay   => [$fullDay, $morning, $afternoon],
-                        $morning   => [$fullDay, $morning],
-                        $afternoon => [$fullDay, $afternoon],
-                        default    => [],
-                    };
-                    $exists = Booking::where('date', $date)
-                        ->whereIn('time_slot', $conflictingSlots)
-                        ->whereIn('status', ['pending', 'confirmed'])
-                        ->exists();
-                    if ($exists) {
-                        $fail("The selected date and time slot is unavailable. Please choose a different slot or date.");
-                    }
-                },
-            ],
-            'time_slot'                 => ['required', 'string', 'in:8:00 AM – 12:00 PM,1:00 PM – 5:00 PM,8:00 AM – 5:00 PM'],
+            'date'                      => ['required', 'date', 'after_or_equal:today'],
+            'time_slot'                 => ['required', 'string'],
+            'exact_time'                => ['required', 'string'],
+            'booking_mode'              => ['required', 'string', 'in:exclusive,visitor'], 
             'event_type_id'             => ['required', 'integer', 'exists:event_types,id'],
             'venue_package_id'          => ['required', 'integer', 'exists:venue_packages,id'],
             'package_add_ons'           => ['nullable', 'array'],
@@ -116,19 +116,34 @@ class BookingController extends Controller
             'payment_option_id'         => ['required'],
             'payment_account_number'    => ['nullable', 'required_unless:payment_option_id,property', 'string', 'max:20'],
             'payment_transaction_ref'   => ['nullable', 'required_unless:payment_option_id,property', 'string', 'max:100'],
+            'total_payment'             => ['required', 'numeric'], 
         ]);
 
-        $package = VenuePackage::findOrFail($validated['venue_package_id']);
+        // Conflict prevention check for exclusive booking:
+        if ($validated['booking_mode'] === 'exclusive') {
+            $targetPackage = VenuePackage::find($validated['venue_package_id']);
+            $sameVenueIds = $targetPackage 
+                ? VenuePackage::where('title', $targetPackage->title)->pluck('id')->toArray()
+                : [$validated['venue_package_id']];
 
-        $addonsTotal = 0;
-        if (!empty($validated['package_add_ons'])) {
-            $addons = PackageAddOn::whereIn('id', $validated['package_add_ons'])->get();
-            foreach ($addons as $addon) {
-                $addonsTotal += $addon->price;
+            $existingExclusive = Booking::where('date', $validated['date'])
+                ->whereIn('venue_package_id', $sameVenueIds)
+                ->whereNotIn('status', ['cancelled'])
+                ->where(function ($q) {
+                    $q->where('booking_mode', 'exclusive')
+                      ->orWhereNull('booking_mode');
+                })
+                ->get();
+
+            foreach ($existingExclusive as $existing) {
+                if ($this->isTimeSlotConflicting($existing->time_slot, $validated['time_slot'])) {
+                    return back()->withErrors([
+                        'time_slot' => "This venue deck is already exclusively reserved on {$validated['date']} ({$existing->time_slot}). You may only book as a Visitor for this slot.",
+                    ]);
+                }
             }
         }
 
-        $totalPayment = $package->price + $addonsTotal;
         $isPayAtVenue = $validated['payment_option_id'] === 'property';
 
         $booking = Booking::create([
@@ -147,7 +162,9 @@ class BookingController extends Controller
             'guest_count'               => $validated['guest_count'],
             'guest_request_notes'       => $validated['guest_request_notes'] ?? null,
             'time_slot'                 => $validated['time_slot'],
-            'total_payment'             => $totalPayment,
+            'exact_time'                => $validated['exact_time'],
+            'booking_mode'              => $validated['booking_mode'], 
+            'total_payment'             => $validated['total_payment'],
             'date'                      => $validated['date'],
             'status'                    => 'pending',
         ]);
@@ -163,30 +180,79 @@ class BookingController extends Controller
     public function checkAvailability(Request $request)
     {
         $request->validate([
-            'date'      => ['required', 'date'],
-            'time_slot' => ['required', 'string'],
+            'date'              => ['required', 'date'],
+            'time_slot'         => ['required', 'string'],
+            'venue_package_id'  => ['nullable', 'integer'],
         ]);
 
-        $date          = $request->date;
-        $requestedSlot = $request->time_slot;
+        $requestedTime = $request->time_slot;
+        $date = $request->date;
+        $venuePackageId = $request->venue_package_id;
 
-        $fullDay   = '8:00 AM – 5:00 PM';
-        $morning   = '8:00 AM – 12:00 PM';
-        $afternoon = '1:00 PM – 5:00 PM';
+        $sameVenueIds = [];
+        if ($venuePackageId) {
+            $targetPackage = VenuePackage::find($venuePackageId);
+            if ($targetPackage) {
+                $sameVenueIds = VenuePackage::where('title', $targetPackage->title)->pluck('id')->toArray();
+            }
+        }
 
-        $conflictingSlots = match ($requestedSlot) {
-            $fullDay   => [$fullDay, $morning, $afternoon],
-            $morning   => [$fullDay, $morning],
-            $afternoon => [$fullDay, $afternoon],
-            default    => [],
-        };
+        $query = Booking::with('eventType', 'venuePackage')
+            ->where('date', $date)
+            ->whereNotIn('status', ['cancelled']);
 
-        $exists = Booking::where('date', $date)
-            ->whereIn('time_slot', $conflictingSlots)
-            ->whereIn('status', ['pending', 'confirmed'])
-            ->exists();
+        if (!empty($sameVenueIds)) {
+            $query->whereIn('venue_package_id', $sameVenueIds);
+        }
 
-        return response()->json(['available' => !$exists]);
+        $existingBookings = $query->get();
+        $exclusiveConflict = null;
+
+        foreach ($existingBookings as $booking) {
+            if ($this->isTimeSlotConflicting($booking->time_slot, $requestedTime)) {
+                if ($booking->booking_mode === 'exclusive' || empty($booking->booking_mode)) {
+                    $exclusiveConflict = $booking;
+                    break;
+                }
+            }
+        }
+
+        if ($exclusiveConflict) {
+            // An exclusive event already exists on this venue & time slot
+            // Exclusive booking is blocked; only VISITOR mode is allowed!
+            return response()->json([
+                'available'    => true,
+                'mode'         => 'visitor',
+                'conflict'     => true,
+                'message'      => "This venue is already exclusively reserved for this date and time slot. You can still proceed by booking as a Visitor.",
+                'booked_by'    => $exclusiveConflict->guest_first_name . ' ' . (substr($exclusiveConflict->guest_last_name ?? '', 0, 1) ? substr($exclusiveConflict->guest_last_name ?? '', 0, 1) . '.' : ''),
+                'booked_event' => $exclusiveConflict->eventType->type ?? $exclusiveConflict->eventType->name ?? 'Private Event',
+                'booked_time'  => $exclusiveConflict->time_slot,
+            ]);
+        }
+
+        return response()->json([
+            'available' => true,
+            'mode'      => 'exclusive',
+            'conflict'  => false,
+            'message'   => 'Venue is available for exclusive event reservation.',
+        ]);
+    }
+
+    private function isTimeSlotConflicting(string $bookedTime, string $requestedTime): bool
+    {
+        if ($bookedTime === $requestedTime) {
+            return true;
+        }
+
+        $isFullDayBooked = str_contains($bookedTime, 'Full Day') || str_contains($bookedTime, '8:00 AM – 5:00 PM') || str_contains($bookedTime, '8:00 AM – 10:00 PM');
+        $isFullDayReq = str_contains($requestedTime, 'Full Day') || str_contains($requestedTime, '8:00 AM – 5:00 PM') || str_contains($requestedTime, '8:00 AM – 10:00 PM');
+
+        if ($isFullDayBooked || $isFullDayReq) {
+            return true;
+        }
+
+        return false;
     }
 
     /**

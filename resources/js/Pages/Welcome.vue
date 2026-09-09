@@ -1,194 +1,510 @@
 <script setup>
-import { ref } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { Head, Link } from "@inertiajs/vue3";
 import ChatBot from "@/Components/ChatBot.vue";
+import Modal from "@/Components/Modal.vue";
 
+const props = defineProps({
+    canLogin: { type: Boolean, default: true },
+    canRegister: { type: Boolean, default: true },
+    posts: { type: Array, default: () => [] },
+    venues: { type: Array, default: () => [] },
+});
+
+// ── Image Helper & Fallback Handler ──
+const resolveImageUrl = (img, fallback = "/images/venue.jpg") => {
+    if (!img) return fallback;
+    if (typeof img === "string") {
+        if (img.includes("XmTOpOEzc8Q71BziIlsEPiIcOn36151otlKZ9b5I")) {
+            return "/images/venue.jpg";
+        }
+        if (img.includes("6pdOrmIILX1jfPKuzGK7Wes1hNF0L0hzLfIWkjBF")) {
+            return "/images/venue2.jpg";
+        }
+        if (img.includes("4wdCZSeyN6xugrJkZucQ8gY32U519AtZoR7gGyOJ")) {
+            return "/images/dining.jpg";
+        }
+        if (img.startsWith("http://") || img.startsWith("https://") || img.startsWith("/")) {
+            return img;
+        }
+    }
+    // If it's a relative filename without slash, resolve from root
+    return "/" + img;
+};
+
+const handleImageError = (event, fallback = "/images/venue.jpg") => {
+    if (event && event.target && event.target.src !== fallback) {
+        event.target.onerror = null;
+        event.target.src = fallback;
+    }
+};
+
+// ── Mobile Navigation Drawer ──
 const mobileMenuOpen = ref(false);
 
-const stats = ref([
-    { num: "500+", label: "Happy Guests Monthly" },
-    { num: "8", label: "Event Venue Spaces" },
-    { num: "12", label: "Island Tour Routes" },
-    { num: "#1", label: "Tourism Spot, Talibon" },
+// ── Quick Availability Search Widget ──
+const todayStr = new Date().toISOString().split("T")[0];
+const searchForm = ref({
+    eventType: "",
+    date: "",
+    guests: "50-100",
+    timeSlot: "evening",
+});
+
+const eventTypesList = [
+    { value: "wedding", label: "Wedding & Reception", icon: "fa-solid fa-ring" },
+    { value: "debut", label: "Debut & Birthday Gala", icon: "fa-solid fa-cake-candles" },
+    { value: "corporate", label: "Corporate Event / Seminar", icon: "fa-solid fa-briefcase" },
+    { value: "reunion", label: "Grand Reunion / Anniversary", icon: "fa-solid fa-champagne-glasses" },
+    { value: "party", label: "Private Social Gathering", icon: "fa-solid fa-music" },
+    { value: "photoshoot", label: "Prenup & Video Shoot", icon: "fa-solid fa-camera" },
+];
+
+const guestRanges = [
+    { value: "20-50", label: "20 – 50 Guests (Intimate)" },
+    { value: "50-100", label: "50 – 100 Guests (Standard)" },
+    { value: "100-250", label: "100 – 250 Guests (Grand Hall)" },
+    { value: "250+", label: "250+ Guests (Full Deck Banquet)" },
+];
+
+const timeSlots = [
+    { value: "morning", label: "Morning Session (8:00 AM – 12:00 PM)" },
+    { value: "afternoon", label: "Afternoon Session (1:00 PM – 5:00 PM)" },
+    { value: "night", label: "Night Gala (6:00 PM – 10:00 PM)" },
+    { value: "fullday", label: "Full Day Exclusive (8:00 AM – 10:00 PM)" },
+];
+
+// Quick check handler
+const searchedHighlight = ref(false);
+const handleQuickSearch = () => {
+    searchedHighlight.value = true;
+    const target = document.getElementById("venues");
+    if (target) {
+        target.scrollIntoView({ behavior: "smooth" });
+    }
+    setTimeout(() => {
+        searchedHighlight.value = false;
+    }, 3000);
+};
+
+// ── Venue Inclusions & Details Modal ──
+const showVenueModal = ref(false);
+const selectedVenue = ref(null);
+
+const openVenueModal = (venue) => {
+    selectedVenue.value = venue;
+    showVenueModal.value = true;
+};
+
+const closeVenueModal = () => {
+    showVenueModal.value = false;
+    setTimeout(() => {
+        selectedVenue.value = null;
+    }, 250);
+};
+
+// ── Filtered & Enhanced Venues List ──
+const activeCategoryFilter = ref("all");
+
+// Default curated venues if database has not populated yet, or as fallback enhancements
+const defaultVenueTemplates = [
+    {
+        id: "v1",
+        title: "The Admiral's Grand Deck",
+        category: "grand-deck",
+        tag: "Grand Ballroom",
+        price: "28,000",
+        guests: 250,
+        image: "/images/venue.jpg",
+        description: "Our premier main deck ballroom featuring panoramic vistas of Talibon bay, theatrical mood lighting, natural ocean breeze ventilation, elevated center stage, and VIP mezzanine lounges.",
+        features: ["Panoramic Ocean Views", "Full Audio & Lights", "Center Stage & Podium", "VIP Holding Room", "Generator Backed"],
+        seating: "Banquet: 250 pax | Theater: 350 pax | Cocktail: 400 pax",
+        availableEvents: [
+            { id: 1, name: "Wedding & Reception" },
+            { id: 2, name: "Grand Debut Gala" },
+            { id: 3, name: "Corporate Gathering" },
+            { id: 4, name: "Anniversary Celebration" },
+        ],
+        inclusions: [
+            "Up to 8 hours exclusive venue access",
+            "Full professional sound system with 4 wireless mics",
+            "Theatrical stage & ambient LED mood wash lights",
+            "Round banquet tables with floor-length linens & cushioned chairs",
+            "Dedicated standby technical crew & electrical engineer",
+            "Bridal / Host private dressing suite with vanity mirror",
+            "Complimentary 2 hours rehearsal / ingress setup",
+        ],
+    },
+    {
+        id: "v2",
+        title: "Sunset Promenade & Skyline Terrace",
+        category: "outdoor-terrace",
+        tag: "Open-Air Deck",
+        price: "18,500",
+        guests: 150,
+        image: "/images/venue2.jpg",
+        description: "An open-air upper ship deck offering breath-taking coastal sunset breezes. The perfect romantic setting for sunset wedding vows, cocktail dinner receptions, and milestone reunions under the stars.",
+        features: ["Open-Air Ocean View", "Fairy & String Lighting", "Acoustic Stage Set", "Bar & Buffet Counter", "Tent Provision Ready"],
+        seating: "Banquet: 120 pax | Cocktail: 180 pax",
+        availableEvents: [
+            { id: 1, name: "Sunset Wedding Vows" },
+            { id: 2, name: "Grand Reunion & Gala" },
+            { id: 3, name: "Cocktail Dinner Party" },
+            { id: 4, name: "Milestone Celebration" },
+        ],
+        inclusions: [
+            "Up to 6 hours exclusive terrace use",
+            "Warm festoon & romantic fairy lighting setup",
+            "Mobile acoustic audio setup with dual mics",
+            "Dedicated beverage bar station and buffet staging line",
+            "Covered canopy protection on standby for unexpected showers",
+            "Complete tables, rustic wooden chairs, and table centerpieces",
+        ],
+    },
+    {
+        id: "v3",
+        title: "Captain's Executive Function Hall",
+        category: "intimate",
+        tag: "Conference & Dining",
+        price: "12,000",
+        guests: 80,
+        image: "/images/dining.jpg",
+        description: "An executive, enclosed maritime-styled hall engineered for business conferences, corporate seminars, private birthday dinners, and intimate baptisms requiring privacy and premium audio-visual equipment.",
+        features: ["High-Lumen Projector", "Conference Microphones", "High-Speed Wi-Fi", "Dedicated Buffet Area", "Refreshing Sea Breeze"],
+        seating: "Classroom: 60 pax | Banquet: 80 pax | Theater: 100 pax",
+        availableEvents: [
+            { id: 1, name: "Corporate Conference & Seminar" },
+            { id: 2, name: "Executive Meeting & Workshop" },
+            { id: 3, name: "Intimate Birthday & Baptism" },
+            { id: 4, name: "Private Social Dinner" },
+        ],
+        inclusions: [
+            "Up to 5 hours exclusive hall use",
+            "Laser projector with motorized 120-inch wide projection screen",
+            "High-speed fiber Wi-Fi access for presenters and attendees",
+            "Individual conference table layout with ergonomic chairs",
+            "Refreshing coastal sea breeze and natural ventilation",
+            "Coffee and water dispenser station on standby",
+        ],
+    },
+];
+
+// Display venues: Deduplicate by physical venue title & aggregate available events
+const displayVenues = computed(() => {
+    if (props.venues && props.venues.length > 0) {
+        const groups = new Map();
+
+        props.venues.forEach((v) => {
+            const rawTitle = (v.title || v.name || "").trim();
+            if (!rawTitle) return;
+            const key = rawTitle.toLowerCase();
+
+            if (!groups.has(key)) {
+                groups.set(key, {
+                    title: rawTitle,
+                    primary: v,
+                    items: [],
+                });
+            }
+            groups.get(key).items.push(v);
+        });
+
+        const list = [];
+        let index = 0;
+
+        for (const [key, group] of groups.entries()) {
+            const primary = group.primary;
+            const items = group.items;
+            const fallback = defaultVenueTemplates[index % defaultVenueTemplates.length];
+
+            // Extract all unique events available for this venue deck
+            const availableEvents = [];
+            const seenEvents = new Set();
+
+            items.forEach((p) => {
+                const eventName = p.eventType?.type || p.eventType?.name || p.event_type?.type || p.event_type?.name;
+                if (eventName && !seenEvents.has(eventName.toLowerCase())) {
+                    seenEvents.add(eventName.toLowerCase());
+                    availableEvents.push({
+                        id: p.id,
+                        name: eventName,
+                        price: p.price,
+                        price_morning: p.price_morning,
+                        price_afternoon: p.price_afternoon,
+                        price_night: p.price_night,
+                        price_fullday: p.price_fullday,
+                    });
+                }
+            });
+
+            // If no specific event in DB, fallback to curated events
+            const finalEvents = availableEvents.length > 0 ? availableEvents : (fallback.availableEvents || []);
+
+            // Lowest base starting price across all configurations of this venue
+            const prices = items
+                .map((p) => Number(p.price))
+                .filter((pr) => !isNaN(pr) && pr > 0);
+            const lowestPrice = prices.length > 0 ? Math.min(...prices) : Number(primary.price || fallback.price);
+
+            // Max capacity across configurations
+            const guestCaps = items
+                .map((p) => Number(p.guests))
+                .filter((g) => !isNaN(g) && g > 0);
+            const maxGuests = guestCaps.length > 0 ? Math.max(...guestCaps) : (primary.guests || fallback.guests);
+
+            // Categorize by capacity & deck keyword
+            let category = "grand-deck";
+            const titleLower = group.title.toLowerCase();
+            if (maxGuests <= 80 || titleLower.includes("executive") || titleLower.includes("function") || titleLower.includes("hall")) {
+                category = "intimate";
+            } else if (titleLower.includes("promenade") || titleLower.includes("terrace") || titleLower.includes("sunset") || titleLower.includes("open")) {
+                category = "outdoor-terrace";
+            }
+
+            const tag = maxGuests > 180 ? "Grand Ballroom" : maxGuests > 90 ? "Open-Air Deck" : "Conference & Dining";
+
+            list.push({
+                id: primary.id,
+                title: group.title,
+                category: category,
+                tag: tag,
+                price: lowestPrice,
+                guests: maxGuests,
+                image: resolveImageUrl(primary.image, fallback.image),
+                description: primary.description || fallback.description,
+                features: fallback.features,
+                seating: fallback.seating,
+                inclusions: fallback.inclusions,
+                availableEvents: finalEvents,
+                packages: items,
+            });
+
+            index++;
+        }
+
+        return list.length > 0 ? list : defaultVenueTemplates;
+    }
+
+    return defaultVenueTemplates;
+});
+
+const filteredVenues = computed(() => {
+    if (activeCategoryFilter.value === "all") return displayVenues.value;
+    return displayVenues.value.filter((v) => v.category === activeCategoryFilter.value);
+});
+
+// ── FAQ Accordion ──
+const faqs = ref([
+    {
+        q: "How early in advance should we reserve our event date?",
+        a: "We recommend reserving at least 2 to 6 months in advance for peak wedding and holiday seasons (October to February, and May to June). However, we accommodate short-notice bookings as long as your preferred date and time slot are open.",
+        open: true,
+    },
+    {
+        q: "Do you allow outside catering and styling suppliers?",
+        a: "Yes! While we offer in-house banquet catering packages, we welcome your chosen outside caterers and event stylists. We provide a designated catering prep kitchen area and clear ingress guidelines with zero or minimal corkage fees depending on your package.",
+        open: false,
+    },
+    {
+        q: "How many hours of setup / ingress are granted prior to the event?",
+        a: "Standard packages include 2 complimentary hours before the event for ingress (styling, cake delivery, sound testing) and 1 hour after the event for egress. Extended setup hours can be coordinated with our reservation manager.",
+        open: false,
+    },
+    {
+        q: "What are the payment and reservation terms?",
+        a: "A 50% reservation downpayment secures your date on our official booking calendar. The remaining balance can be settled on or before the event date via Cash, GCash, or Bank Transfer. Digital receipts are automatically generated.",
+        open: false,
+    },
+    {
+        q: "Do you have a power generator in case of utility outages?",
+        a: "Yes! Butal Ship Hauz is equipped with a heavy-duty commercial automatic backup generator capable of powering all venue lighting, pro sound systems, and full stage equipment seamlessly without event interruption.",
+        open: false,
+    },
+    {
+        q: "Can we schedule an on-site ocular inspection before booking?",
+        a: "Definitely! Our event coordinators are available daily from 8:00 AM to 5:00 PM to give you a guided walk-through of our ship decks, dressing suites, and technical facilities.",
+        open: false,
+    },
 ]);
 
-const features = ref([
-    {
-        title: "Award-Winning Architecture",
-        desc: "Cited as one of the most distinctive hospitality venues in the Philippines.",
-        icon: '<path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.3L20 8.7v8.6L12 19.7 4 17.3V8.7L12 4.3z"/>',
-    },
-    {
-        title: "Seasoned Hospitality Team",
-        desc: "Our crew is dedicated to making every visit memorable and seamless.",
-        icon: '<path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>',
-    },
-    {
-        title: "Prime Bohol Location",
-        desc: "Conveniently located in Talibon gateway to Northern Bohol's hidden gems.",
-        icon: '<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>',
-    },
-]);
+const toggleFaq = (index) => {
+    faqs.value[index].open = !faqs.value[index].open;
+};
 
-const services = ref([
+// ── Occasions Catered Showcase ──
+const occasions = [
     {
-        tag: "Venue",
-        title: "Venue Booking",
-        price: "₱5,000",
-        unit: "/ event",
-        gradient: "linear-gradient(135deg,#133558,#1A6896)",
-        desc: "Host your dream events inside the iconic Ship Hauz. From intimate dinners to grand receptions we have a space for every celebration.",
-        icon: '<rect x="10" y="30" width="80" height="40" rx="2"/><rect x="30" y="10" width="40" height="22" rx="2"/><rect x="40" y="50" width="20" height="20"/>',
+        title: "Weddings & Receptions",
+        tag: "Romance at Sea",
+        desc: "Exchange vows with the Bohol sea horizon as your backdrop, followed by a grand banquet on the Admiral Deck.",
+        image: "/images/venue.jpg",
+        icon: "fa-solid fa-ring",
+        pax: "Up to 350 Pax",
     },
     {
-        tag: "Stay",
-        title: "Accommodations",
-        price: "₱1,200",
-        unit: "/ night",
-        gradient: "linear-gradient(135deg,#1f3f1c,#3a7a35)",
-        desc: "Spend the night aboard the Ship Hauz. Cozy rooms with nautical-themed interiors and stunning views of the Bohol landscape.",
-        icon: '<rect x="20" y="25" width="60" height="45" rx="3"/><path d="M15 25 L50 5 L85 25"/><rect x="38" y="50" width="24" height="20"/>',
+        title: "Debuts & Sweet 16s",
+        tag: "Grand Celebrations",
+        desc: "A magical red-carpet entrance down the ship's grand staircase with dynamic mood lighting and spacious dance floor.",
+        image: "/images/venue2.jpg",
+        icon: "fa-solid fa-cake-candles",
+        pax: "100 – 250 Pax",
     },
     {
-        tag: "Tours",
-        title: "Island Tours",
-        price: "₱800",
-        unit: "/ person",
-        gradient: "linear-gradient(135deg,#4a2c0d,#b94b2c)",
-        desc: "Explore the natural wonders of Northern Bohol with our curated island-hopping and adventure tour packages.",
-        icon: '<circle cx="50" cy="40" r="25"/><path d="M30 60 Q50 75 70 60"/><path d="M25 40 L75 40"/><path d="M50 15 L50 65"/>',
+        title: "Corporate Seminars & Galas",
+        tag: "Executive Functions",
+        desc: "State-of-the-art projection, high-fidelity microphones, and comfortable table layouts for corporate success.",
+        image: "/images/dining.jpg",
+        icon: "fa-solid fa-briefcase",
+        pax: "50 – 150 Pax",
     },
     {
-        tag: "Events",
-        title: "Event Planning",
-        price: "₱15,000",
-        unit: "/ package",
-        gradient: "linear-gradient(135deg,#2c1a4a,#6b3aa3)",
-        desc: "Leave it all to us. Our team will coordinate your wedding, debut, corporate event, or reunion from start to finish.",
-        icon: '<rect x="15" y="20" width="70" height="50" rx="4"/><path d="M30 20 L30 10"/><path d="M70 20 L70 10"/><path d="M15 38 L85 38"/>',
+        title: "Grand Reunions & Anniversaries",
+        tag: "Unforgettable Milestones",
+        desc: "Celebrate family milestones, alumni homecomings, and golden anniversaries with delicious catering and photo spots.",
+        image: "/images/stay.jpg",
+        icon: "fa-solid fa-champagne-glasses",
+        pax: "80 – 300 Pax",
     },
-    {
-        tag: "Dining",
-        title: "Dining & Catering",
-        price: "₱350",
-        unit: "/ person",
-        gradient: "linear-gradient(135deg,#4a350d,#c8973c)",
-        desc: "Savor fresh Bohol flavors with our on-site restaurant and custom catering services for groups of all sizes.",
-        icon: '<path d="M30 20 L30 60"/><path d="M70 20 L70 60"/><ellipse cx="50" cy="40" rx="30" ry="15"/>',
-    },
-    {
-        tag: "Photo",
-        title: "Photography Venue",
-        price: "₱2,500",
-        unit: "/ session",
-        gradient: "linear-gradient(135deg,#0d3a4a,#1a8a9a)",
-        desc: "Use the Ship Hauz as a dramatic backdrop for prenuptial shoots, fashion photography, or commercial production.",
-        icon: '<rect x="15" y="25" width="70" height="45" rx="4"/><circle cx="50" cy="47" r="14"/><circle cx="50" cy="47" r="8"/><rect x="35" y="18" width="30" height="10" rx="3"/>',
-    },
-]);
+];
 
-const packages = ref([
+// ── Booking Steps ──
+const bookingSteps = [
     {
-        name: "Day Tour",
-        price: "₱999",
-        desc: "Venue access, 1 meal, and a guided tour",
-        featured: false,
+        step: "01",
+        title: "Explore Decks & Packages",
+        desc: "Browse our signature ship halls, check seating capacities, and preview complete venue inclusions.",
+        icon: "fa-solid fa-magnifying-glass",
     },
     {
-        name: "⭐ Overnight",
-        price: "₱2,499",
-        desc: "Room, 3 meals, island tour, and venue access",
-        featured: true,
+        step: "02",
+        title: "Select Date & Customize",
+        desc: "Lock in your preferred date and time slot. Choose add-ons like sound systems, projectors, or catering space.",
+        icon: "fa-solid fa-calendar-check",
     },
     {
-        name: "Weekend",
-        price: "₱4,299",
-        desc: "2 nights, all meals, 2 tours, and event hall",
-        featured: false,
+        step: "03",
+        title: "Instant Confirmation",
+        desc: "Secure your reservation with flexible payment channels (GCash, Bank, Cash) and get an automated receipt.",
+        icon: "fa-solid fa-shield-halved",
     },
-]);
+];
 
-const posts = ref([
+// ── Key Venue Perks ──
+const venuePerks = [
     {
-        date: "June 2025",
-        category: "Destination",
-        title: "Why Butal Ship Hauz is Bohol's Most Photographed Landmark",
-        excerpt:
-            "Thousands of tourists flock to Talibon each year specifically to see our ship-shaped masterpiece up close.",
-        gradient: "linear-gradient(135deg,#0e2d4d,#1a6898)",
-        icon: '<path d="M10 50 L30 30 L50 40 L70 20 L90 35 L90 70 L10 70Z"/>',
+        icon: "fa-solid fa-ship",
+        title: "One-of-a-Kind Ship Architecture",
+        desc: "An architectural landmark in Talibon, Bohol offering iconic photo backdrops that guests will talk about for years.",
     },
     {
-        date: "May 2025",
-        category: "Events",
-        title: "The Perfect Venue for Your Dream Bohol Wedding",
-        excerpt:
-            'Say "I do" aboard the most iconic venue in Northern Bohol. Our wedding packages include full catering and coordination.',
-        gradient: "linear-gradient(135deg,#1a3a1c,#3a7a35)",
-        icon: '<circle cx="50" cy="35" r="20"/><path d="M10 70 Q50 45 90 70"/>',
+        icon: "fa-solid fa-wind",
+        title: "Refreshing Ocean Breeze & Bay Views",
+        desc: "Experience scenic coastal trade winds and panoramic sea vistas, creating a naturally cool and breath-taking maritime ambience.",
     },
     {
-        date: "April 2025",
-        category: "Travel Tips",
-        title: "Top 5 Things to Do Near Butal Ship Hauz in Talibon",
-        excerpt:
-            "From hidden waterfalls to pristine beaches — the best activities to pair with your Ship Hauz stay.",
-        gradient: "linear-gradient(135deg,#3a200d,#b94b2c)",
-        icon: '<path d="M20 60 L50 10 L80 60 Z"/><rect x="35" y="60" width="30" height="15"/>',
+        icon: "fa-solid fa-bolt",
+        title: "100% Backup Power Generator",
+        desc: "Zero worries about local brownouts. Our heavy-duty standby generator keeps lights, sound, and stage equipment running uninterrupted.",
     },
-]);
+    {
+        icon: "fa-solid fa-square-parking",
+        title: "Spacious Free Guest Parking",
+        desc: "Ample, well-lit parking spaces accommodating up to 50+ vehicles, vans, and buses with security assistance.",
+    },
+    {
+        icon: "fa-solid fa-music",
+        title: "Pro Audio & Stage Equipment",
+        desc: "High-clarity speaker arrays, wireless microphones, and versatile LED wash lighting ready for your band, DJ, or host.",
+    },
+    {
+        icon: "fa-solid fa-handshake",
+        title: "Dedicated On-Site Crew",
+        desc: "Friendly, experienced venue marshals, electrical technicians, and coordinators on standby throughout your event.",
+    },
+];
 
+// ── Official Facebook & Article Direct Navigation Helper ──
+const OFFICIAL_FACEBOOK_URL = "https://www.facebook.com/share/1KawkEhDiH/";
+
+const getArticleLink = (post) => {
+    if (!post) return OFFICIAL_FACEBOOK_URL;
+    const raw = (post.link || "").trim();
+    if (raw) {
+        if (/^https?:\/\//i.test(raw)) {
+            return raw;
+        }
+        return "https://" + raw;
+    }
+    return OFFICIAL_FACEBOOK_URL;
+};
+
+// ── Sticky Booking Pill on Scroll ──
+const isScrolledPastHero = ref(false);
+const handleScroll = () => {
+    isScrolledPastHero.value = window.scrollY > 550;
+};
+
+onMounted(() => {
+    window.addEventListener("scroll", handleScroll, { passive: true });
+});
+
+onUnmounted(() => {
+    window.removeEventListener("scroll", handleScroll);
+});
+
+// ── Contact Information ──
 const contactInfo = ref([
     {
-        label: "Location",
-        value: "Butal Ship Hauz, Talibon, Bohol<br/>Philippines",
-        icon: '<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>',
+        label: "Venue Location",
+        value: "Butal Ship Hauz, San Roque, Talibon, Bohol, Philippines",
+        icon: "fa-solid fa-location-dot",
     },
     {
-        label: "Phone",
-        value: "+63 (0) 912 345 6789",
-        icon: '<path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>',
+        label: "Reservations Hotline",
+        value: "+63 912 345 6789 / (038) 510 1234",
+        icon: "fa-solid fa-phone",
     },
     {
-        label: "Email",
+        label: "Events & Bookings Email",
         value: "reservations@butalshiphauz.com.ph",
-        icon: '<path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>',
+        icon: "fa-solid fa-envelope",
     },
     {
-        label: "Hours",
-        value: "Daily, 7:00 AM – 9:00 PM<br/>Reservations: 8:00 AM – 6:00 PM",
-        icon: '<path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/>',
+        label: "Ocular & Office Hours",
+        value: "Daily: 8:00 AM – 6:00 PM (Ocular visits welcome)",
+        icon: "fa-solid fa-clock",
     },
 ]);
 
 const footerCols = ref([
     {
-        heading: "Navigation",
+        heading: "Venue & Spaces",
         links: [
-            { label: "Home", href: "#home" },
-            { label: "About Us", href: "#about" },
-            { label: "Services", href: "#services" },
-            { label: "Blog & News", href: "#blog" },
-            { label: "Contact", href: "#contact" },
+            { label: "Grand Ballroom Deck", href: "#venues" },
+            { label: "Sunset Promenade", href: "#venues" },
+            { label: "Captain's Function Hall", href: "#venues" },
+            { label: "Venue Pricing & Rates", href: "#venues" },
+            { label: "Technical Inclusions", href: "#amenities" },
         ],
     },
     {
-        heading: "Services",
+        heading: "Planning Your Event",
         links: [
-            { label: "Venue Booking", href: "#services" },
-            { label: "Accommodations", href: "#services" },
-            { label: "Island Tours", href: "#services" },
-            { label: "Event Planning", href: "#services" },
-            { label: "Dining & Catering", href: "#services" },
+            { label: "How to Book", href: "#how-it-works" },
+            { label: "Occasions & Celebrations", href: "#occasions" },
+            { label: "Frequently Asked Questions", href: "#faq" },
+            { label: "Schedule an Ocular Visit", href: "#contact" },
+            { label: "News & Stories", href: "#blog" },
         ],
     },
     {
-        heading: "Legal",
+        heading: "Policies & Terms",
         links: [
-            { label: "Privacy Policy", href: "#" },
+            { label: "Reservation & Deposit Policy", href: "#faq" },
+            { label: "Ingress & Egress Guidelines", href: "#faq" },
+            { label: "Catering & Sound Guidelines", href: "#faq" },
             { label: "Terms of Service", href: "#" },
-            { label: "Booking Policy", href: "#" },
-            { label: "Refund Policy", href: "#" },
+            { label: "Privacy Policy", href: "#" },
         ],
     },
 ]);
@@ -196,815 +512,915 @@ const footerCols = ref([
 const socials = ref([
     {
         label: "Facebook",
+        url: "https://www.facebook.com/share/1KawkEhDiH/",
         icon: '<path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>',
     },
     {
         label: "Instagram",
+        url: "https://www.instagram.com/",
         icon: '<rect x="2" y="2" width="20" height="20" rx="5" ry="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.5" cy="6.5" r="1"/>',
     },
     {
         label: "TikTok",
+        url: "https://www.tiktok.com/",
         icon: '<path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.79 1.53V6.77a4.85 4.85 0 0 1-1.02-.08z"/>',
     },
 ]);
-
-defineProps({
-    canLogin: { type: Boolean },
-    canRegister: { type: Boolean },
-});
 </script>
 
 <template>
-    <Head title="Butal Ship Hauz — Talibon, Bohol" />
+    <Head title="Butal Ship Hauz — Premier Venue Booking in Talibon, Bohol" />
 
-    <div class="bg-navy text-white antialiased overflow-x-hidden font-body">
-        <!-- ══════════ NAV ══════════ -->
-        <nav
-            class="fixed top-0 left-0 right-0 z-50 bg-navy/95 backdrop-blur-md border-b border-brass/20"
-        >
-            <div
-                class="flex items-center justify-between px-6 md:px-10 h-[68px]"
-            >
-                <!-- Logo -->
-                <a
-                    href="#home"
-                    class="flex items-center gap-3 no-underline flex-shrink-0"
-                >
-                    <svg
-                        class="w-8 h-8 fill-brass flex-shrink-0"
-                        viewBox="0 0 48 48"
-                    >
-                        <path
-                            d="M24 6a6 6 0 1 0 0 12A6 6 0 0 0 24 6zm0 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 6c-1.1 0-2 .9-2 2v16.5C15 37 8.5 31 8.5 24H12c.83 0 1.5-.67 1.5-1.5S12.83 21 12 21H6c-.83 0-1.5.67-1.5 1.5S5.17 24 6 24c0 8.84 7.16 16 16 16s16-7.16 16-16h2.5a1.5 1.5 0 0 0 0-3H36c-.83 0-1.5.67-1.5 1.5S35.17 24 36 24c0 7-6.5 13-13.5 13.5V22c0-1.1-.9-2-2-2z"
-                        />
-                    </svg>
-                    <div>
-                        <div
-                            class="font-display text-white text-base font-semibold leading-tight"
-                        >
-                            Butal Ship Hauz
+    <div class="min-h-screen bg-white text-slate-900 antialiased overflow-x-hidden font-body flex flex-col selection:bg-orange-500 selection:text-white">
+        
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- 1. TOP ANNOUNCEMENT & CLEAN CRISP NAVIGATION           -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <header class="fixed top-0 left-0 right-0 z-40">
+            <!-- Top Announcement Bar (High contrast) -->
+            <div class="bg-sky-900 text-sky-100 text-xs py-2 px-4 text-center border-b border-sky-800 hidden sm:block">
+                <div class="max-w-7xl mx-auto flex items-center justify-between">
+                    <span class="inline-flex items-center gap-2 font-medium">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <strong class="text-white font-bold">Accepting Bookings for 2026 & 2027</strong> — Reserve your event date with our flexible 50% downpayment!
+                    </span>
+                    <a href="#contact" class="text-amber-300 hover:text-white underline font-bold transition-colors">
+                        Book an Ocular Visit &rarr;
+                    </a>
+                </div>
+            </div>
+
+            <!-- Main Navbar (Clean White & Slate) -->
+            <nav class="bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm transition-all duration-300">
+                <div class="max-w-7xl mx-auto flex items-center justify-between px-6 md:px-8 h-20">
+                    <!-- Logo -->
+                    <a href="#home" class="flex items-center gap-3.5 no-underline flex-shrink-0 group">
+                        <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-md shadow-orange-500/20 group-hover:scale-105 transition-transform duration-300">
+                            <font-awesome-icon icon="fa-solid fa-ship" class="text-white text-xl" />
                         </div>
-                        <div
-                            class="font-mono text-brass text-[10px] tracking-[.18em] uppercase leading-none"
-                        >
-                            Talibon, Bohol
+                        <div>
+                            <div class="font-display text-slate-900 text-xl font-bold leading-tight tracking-tight flex items-center gap-2">
+                                Butal Ship Hauz
+                                <span class="bg-orange-100 text-orange-700 text-[10px] font-mono px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">Venue</span>
+                            </div>
+                            <div class="font-mono text-orange-600 text-[11px] font-bold tracking-[.18em] uppercase leading-none mt-1 flex items-center gap-1.5">
+                                <font-awesome-icon icon="fa-solid fa-location-dot" class="text-[9px]" /> Talibon, Bohol
+                            </div>
                         </div>
+                    </a>
+
+                    <!-- Desktop Nav Links -->
+                    <ul class="hidden lg:flex items-center gap-7 list-none m-0 p-0">
+                        <li>
+                            <a href="#venues" class="nav-link text-sm font-bold text-slate-700 hover:text-orange-600 transition-colors duration-200">
+                                Venue Spaces
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#how-it-works" class="nav-link text-sm font-bold text-slate-700 hover:text-orange-600 transition-colors duration-200">
+                                How to Book
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#occasions" class="nav-link text-sm font-bold text-slate-700 hover:text-orange-600 transition-colors duration-200">
+                                Occasions
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#amenities" class="nav-link text-sm font-bold text-slate-700 hover:text-orange-600 transition-colors duration-200">
+                                Inclusions & Perks
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#faq" class="nav-link text-sm font-bold text-slate-700 hover:text-orange-600 transition-colors duration-200">
+                                FAQs
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#contact" class="nav-link text-sm font-bold text-slate-700 hover:text-orange-600 transition-colors duration-200">
+                                Contact & Map
+                            </a>
+                        </li>
+                    </ul>
+
+                    <!-- Auth / Action Buttons -->
+                    <div class="hidden sm:flex items-center gap-3">
+                        <template v-if="$page.props.auth.user">
+                            <Link 
+                                :href="$page.props.auth.user.role === 'admin' ? route('admin.dashboard') : route('client.home')" 
+                                class="inline-flex items-center gap-2 text-sm font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 px-5 py-2.5 rounded-full transition-all duration-200 border border-slate-300"
+                            >
+                                <font-awesome-icon icon="fa-solid fa-gauge-high" class="text-orange-500" />
+                                {{ $page.props.auth.user.role === 'admin' ? 'Admin Portal' : 'My Dashboard' }}
+                            </Link>
+                            <Link 
+                                v-if="$page.props.auth.user.role === 'client'"
+                                :href="route('client.booking.index')" 
+                                class="inline-flex items-center gap-2 text-sm font-bold text-white bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 px-5 py-2.5 rounded-full transition-all duration-200 shadow-md shadow-orange-500/20 hover:-translate-y-0.5"
+                            >
+                                <font-awesome-icon icon="fa-solid fa-calendar-check" /> Book Now
+                            </Link>
+                        </template>
+                        <template v-else-if="canLogin">
+                            <Link :href="route('login')" class="text-sm font-bold text-slate-700 hover:text-orange-600 px-3 py-2 transition-colors">
+                                Log in
+                            </Link>
+                            <Link 
+                                v-if="canRegister" 
+                                :href="route('register')" 
+                                class="inline-flex items-center gap-2 text-sm font-bold text-white bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 px-5 py-2.5 rounded-full transition-all duration-200 shadow-md shadow-orange-500/25 hover:-translate-y-0.5"
+                            >
+                                <font-awesome-icon icon="fa-solid fa-calendar-check" /> Reserve Venue
+                            </Link>
+                        </template>
                     </div>
-                </a>
 
-                <!-- Desktop Nav -->
-                <ul class="hidden md:flex items-center gap-8 list-none m-0 p-0">
-                    <li>
-                        <a
-                            href="#home"
-                            class="nav-link font-mono text-[11px] tracking-[.14em] uppercase text-white/65 hover:text-white transition-colors duration-200"
+                    <!-- Mobile Hamburger Toggle -->
+                    <div class="flex lg:hidden items-center gap-2">
+                        <button
+                            @click="mobileMenuOpen = !mobileMenuOpen"
+                            class="w-11 h-11 flex flex-col items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-slate-100 text-slate-800 hover:bg-slate-200 transition-colors"
+                            aria-label="Toggle navigation menu"
                         >
-                            <font-awesome-icon icon="fa-solid fa-house" />
-                            Home
+                            <span class="w-5 h-0.5 bg-slate-800 transition-all" :class="{ 'rotate-45 translate-y-2': mobileMenuOpen }"></span>
+                            <span class="w-5 h-0.5 bg-slate-800 transition-all" :class="{ 'opacity-0': mobileMenuOpen }"></span>
+                            <span class="w-5 h-0.5 bg-slate-800 transition-all" :class="{ '-rotate-45 -translate-y-2': mobileMenuOpen }"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mobile Navigation Drawer -->
+                <div 
+                    class="lg:hidden overflow-hidden transition-all duration-300 ease-in-out bg-white border-t border-slate-200"
+                    :style="mobileMenuOpen ? 'max-height: 480px;' : 'max-height: 0px;'"
+                >
+                    <div class="px-6 py-6 space-y-3">
+                        <a 
+                            v-for="nav in [
+                                { label: 'Venue Spaces & Rates', href: '#venues', icon: 'fa-solid fa-ship' },
+                                { label: 'How to Book', href: '#how-it-works', icon: 'fa-solid fa-calendar-check' },
+                                { label: 'Occasions Catered', href: '#occasions', icon: 'fa-solid fa-champagne-glasses' },
+                                { label: 'Inclusions & Perks', href: '#amenities', icon: 'fa-solid fa-star' },
+                                { label: 'Frequently Asked Questions', href: '#faq', icon: 'fa-solid fa-circle-question' },
+                                { label: 'Contact & Ocular Location', href: '#contact', icon: 'fa-solid fa-location-dot' },
+                            ]"
+                            :key="nav.label"
+                            :href="nav.href"
+                            @click="mobileMenuOpen = false"
+                            class="flex items-center gap-3 text-slate-800 hover:text-orange-600 font-bold text-sm py-2.5 px-3 rounded-lg hover:bg-slate-50 transition-colors"
+                        >
+                            <font-awesome-icon :icon="nav.icon" class="text-orange-500 w-4" />
+                            {{ nav.label }}
                         </a>
-                    </li>
-                    <li>
-                        <a
-                            href="#about"
-                            class="nav-link font-mono text-[11px] tracking-[.14em] uppercase text-white/65 hover:text-white transition-colors duration-200"
-                        >
-                            <font-awesome-icon icon="fa-solid fa-circle-info" />
-                            About
-                        </a>
-                    </li>
-                    <li>
-                        <a
-                            href="#services"
-                            class="nav-link font-mono text-[11px] tracking-[.14em] uppercase text-white/65 hover:text-white transition-colors duration-200"
-                        >
-                            <font-awesome-icon
-                                icon="fa-solid fa-person-military-pointing"
-                            />
-                            Services
-                        </a>
-                    </li>
-                    <li>
-                        <a
-                            href="#blog"
-                            class="nav-link font-mono text-[11px] tracking-[.14em] uppercase text-white/65 hover:text-white transition-colors duration-200"
-                        >
-                            <font-awesome-icon icon="fa-solid fa-newspaper" />
-                            News
-                        </a>
-                    </li>
-                    <li>
-                        <a
-                            href="#contact"
-                            class="nav-link font-mono text-[11px] tracking-[.14em] uppercase text-white/65 hover:text-white transition-colors duration-200"
-                        >
-                            <font-awesome-icon icon="fa-solid fa-id-card" />
-                            Contact
-                        </a>
-                    </li>
-                    <li v-if="$page.props.auth.user">
-                        <Link
-                            :href="route('client.home')"
-                            class="font-body text-[13px] font-medium text-navy bg-brass hover:bg-gold px-5 py-2 rounded-sm transition-colors duration-200"
-                        >
-                            <font-awesome-icon
-                                icon="fa-solid fa-angles-right"
-                            />
-                            BACK
-                        </Link>
-                    </li>
-                    <template v-if="canLogin">
-                        <template v-if="!$page.props.auth.user">
-                            <li>
-                                <Link
-                                    :href="route('login')"
-                                    class="font-mono text-[11px] tracking-[.14em] uppercase text-white/65 hover:text-white transition-colors duration-200"
+
+                        <div class="pt-4 border-t border-slate-200 flex flex-col gap-2.5">
+                            <template v-if="$page.props.auth.user">
+                                <Link 
+                                    :href="$page.props.auth.user.role === 'admin' ? route('admin.dashboard') : route('client.booking.index')"
+                                    class="w-full text-center bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition-colors shadow-md"
                                 >
-                                    <font-awesome-icon
-                                        icon="fa-solid fa-right-to-bracket"
-                                    />
+                                    Proceed to Bookings
+                                </Link>
+                            </template>
+                            <template v-else>
+                                <Link :href="route('login')" class="w-full text-center bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 rounded-xl border border-slate-300 transition-colors">
                                     Log in
                                 </Link>
-                            </li>
-                            <li v-if="canRegister">
-                                <Link
-                                    :href="route('register')"
-                                    class="font-body text-[13px] font-medium text-navy bg-brass hover:bg-gold px-5 py-2 rounded-sm transition-colors duration-200"
-                                >
-                                    <font-awesome-icon
-                                        icon="fa-solid fa-circle-user"
-                                    />
-                                    CREATE ACCOUNT
+                                <Link :href="route('register')" class="w-full text-center bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition-colors shadow-md">
+                                    Create Account to Book
                                 </Link>
-                            </li>
-                        </template>
-                    </template>
-                </ul>
-
-                <!-- Mobile: auth CTA + hamburger -->
-                <div class="flex md:hidden items-center gap-3">
-                    <button
-                        @click="mobileMenuOpen = !mobileMenuOpen"
-                        class="w-10 h-10 flex flex-col items-center justify-center gap-[5px] rounded-sm border border-white/15 hover:border-brass/40 transition-colors duration-200"
-                        :aria-expanded="mobileMenuOpen"
-                        aria-label="Toggle menu"
-                    >
-                        <span
-                            class="hamburger-line"
-                            :class="{
-                                'rotate-45 translate-y-[7px]': mobileMenuOpen,
-                            }"
-                        ></span>
-                        <span
-                            class="hamburger-line"
-                            :class="{ 'opacity-0 scale-x-0': mobileMenuOpen }"
-                        ></span>
-                        <span
-                            class="hamburger-line"
-                            :class="{
-                                '-rotate-45 -translate-y-[7px]': mobileMenuOpen,
-                            }"
-                        ></span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Mobile Menu Drawer -->
-            <div
-                class="mobile-drawer md:hidden overflow-hidden transition-all duration-300 ease-in-out"
-                :class="
-                    mobileMenuOpen
-                        ? 'mobile-drawer-open'
-                        : 'mobile-drawer-closed'
-                "
-            >
-                <div class="px-6 pb-6 pt-2 border-t border-white/10">
-                    <!-- Nav links -->
-                    <nav class="grid grid-cols-2 gap-1 mb-5">
-                        <a
-                            v-for="item in [
-                                {
-                                    label: 'Home',
-                                    icon: 'fa-solid fa-house',
-                                    href: '#home',
-                                },
-                                {
-                                    label: 'About',
-                                    icon: 'fa-solid fa-circle-info',
-                                    href: '#about',
-                                },
-                                {
-                                    label: 'Services',
-                                    icon: 'fa-solid fa-person-military-pointing',
-                                    href: '#services',
-                                },
-                                {
-                                    label: 'Blog & News',
-                                    icon: 'fa-solid fa-newspaper',
-                                    href: '#blog',
-                                },
-                                {
-                                    label: 'Contact',
-                                    icon: 'fa-solid fa-id-card',
-                                    href: '#contact',
-                                },
-                            ]"
-                            :key="item.label"
-                            :href="item.href"
-                            @click="mobileMenuOpen = false"
-                            class="mobile-nav-item font-mono text-[11px] tracking-[.12em] uppercase text-white/70 hover:text-white hover:bg-white/8 px-4 py-3 rounded-sm transition-all duration-150 flex items-center gap-2"
-                        >
-                            <font-awesome-icon :icon="item.icon" />
-                            {{ item.label }}
-                        </a>
-                    </nav>
-
-                    <!-- Divider -->
-                    <div class="h-px bg-white/10 mb-5"></div>
-
-                    <!-- Auth section -->
-                    <template v-if="canLogin">
-                        <div
-                            v-if="$page.props.auth.user"
-                            class="flex justify-center"
-                        >
-                            <Link
-                                :href="route('client.home')"
-                                class="w-full text-center font-body text-sm font-medium text-white/70 border border-white/20 hover:border-brass/50 hover:text-white px-6 py-3 rounded-sm transition-colors duration-200"
-                            >
-                                
-                            <font-awesome-icon
-                                icon="fa-solid fa-angles-right"
-                            />
-                             BACK
-                            </Link>
-                        </div>
-                        <div v-else class="flex flex-col gap-2">
-                            <Link
-                                :href="route('login')"
-                                class="w-full text-center font-body text-sm font-medium text-white/70 border border-white/20 hover:border-white/40 hover:text-white px-6 py-3 rounded-sm transition-colors duration-200"
-                            >
-                                <font-awesome-icon
-                                    icon="fa-solid fa-right-to-bracket"
-                                />
-                                Log In
-                            </Link>
-                            <Link
-                                v-if="canRegister"
-                                :href="route('register')"
-                                class="w-full text-center font-body text-sm font-semibold text-navy bg-brass hover:bg-gold px-6 py-3 rounded-sm transition-colors duration-200"
-                            >
-                                <font-awesome-icon
-                                    icon="fa-solid fa-circle-user"
-                                />
-                                Create Account
-                            </Link>
-                        </div>
-                    </template>
-
-                    <!-- Contact quick info -->
-                    <div
-                        class="mt-5 pt-5 border-t border-white/10 flex flex-col gap-2"
-                    >
-                        <a
-                            href="tel:+639123456789"
-                            class="flex items-center gap-2 text-white/40 hover:text-brass transition-colors duration-200"
-                        >
-                            <svg
-                                class="w-3.5 h-3.5 fill-current flex-shrink-0"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"
-                                />
-                            </svg>
-                            <span class="font-mono text-[10px] tracking-wider"
-                                >+63 (0) 912 345 6789</span
-                            >
-                        </a>
-                        <span class="flex items-center gap-2 text-white/40">
-                            <svg
-                                class="w-3.5 h-3.5 fill-current flex-shrink-0"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
-                                />
-                            </svg>
-                            <span class="font-mono text-[10px] tracking-wider"
-                                >Talibon, Bohol, Philippines</span
-                            >
-                        </span>
-                    </div>
-                </div>
-            </div>
-        </nav>
-
-        <!-- ══════════ HERO ══════════ -->
-        <section
-            id="home"
-            class="relative min-h-screen flex items-center justify-center overflow-hidden"
-            style="
-                background: linear-gradient(
-                    180deg,
-                    #060f1d 0%,
-                    #0c1e35 40%,
-                    #0e2845 65%,
-                    #0a2138 100%
-                );
-            "
-        >
-            <div class="stars absolute inset-0 pointer-events-none"></div>
-            <svg
-                class="ship-float absolute bottom-[100px] left-1/2 w-[680px] max-w-[88vw] opacity-[.09] pointer-events-none"
-                style="transform: translateX(-50%)"
-                viewBox="0 0 700 280"
-                xmlns="http://www.w3.org/2000/svg"
-            >
-                <path
-                    fill="white"
-                    d="M50 200 L80 140 L120 100 L140 60 L180 40 L220 60 L240 100 L280 80 L320 60 L360 80 L380 100 L400 80 L440 60 L480 80 L500 100 L540 120 L600 140 L640 180 L650 200 Z"
-                />
-                <path fill="white" d="M60 200 L640 200 L620 240 L80 240 Z" />
-                <rect fill="white" x="160" y="90" width="10" height="110" />
-                <rect fill="white" x="350" y="70" width="10" height="130" />
-                <path fill="white" d="M170 90 L295 102 L170 114 Z" />
-                <path fill="white" d="M360 70 L475 86 L360 102 Z" />
-            </svg>
-            <div class="wave-layer">
-                <div class="wave-shape"></div>
-                <div class="wave-shape"></div>
-                <div class="wave-shape"></div>
-            </div>
-            <div class="relative z-10 text-center px-6 max-w-3xl mx-auto">
-                <div class="inline-flex items-center gap-2 mb-7">
-                    <div class="h-px w-8 bg-brass/60"></div>
-                    <span
-                        class="font-mono text-[11px] tracking-[.22em] uppercase text-brass"
-                        >⚓ Talibon, Bohol, Philippines</span
-                    >
-                    <div class="h-px w-8 bg-brass/60"></div>
-                </div>
-                <h1
-                    class="font-display text-white font-bold leading-[1.06] mb-6 hero-title"
-                >
-                    Where the Sea<br />
-                    <em class="text-brass" style="font-style: italic"
-                        >Comes Ashore</em
-                    >
-                </h1>
-                <p
-                    class="font-body text-white/55 text-lg font-light leading-relaxed mb-10 max-w-xl mx-auto"
-                >
-                    Bohol's most distinctive ship-shaped landmark offering venue
-                    bookings, accommodations, and island tours in the heart of
-                    Talibon.
-                </p>
-                <div class="flex flex-wrap gap-4 justify-center">
-                    <Link
-                        :href="$page.props.auth.user ? $page.props.auth.user.role == 'client' ? route('client.home') : route('admin.dashboard') : route('login')"
-                        class="inline-block bg-brass hover:bg-gold text-navy font-body font-medium text-sm tracking-wide px-8 py-4 rounded-sm transition-all duration-200 hover:-translate-y-px"
-                        >Book a Reservation</Link
-                    >
-                    <a
-                        href="#services"
-                        class="inline-block border border-white/25 hover:border-brass text-white hover:text-brass font-body font-light text-sm tracking-wide px-8 py-4 rounded-sm transition-all duration-200"
-                        >Explore Services</a
-                    >
-                </div>
-            </div>
-            <div
-                class="pulse-scroll absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2"
-            >
-                <div
-                    class="w-px h-10"
-                    style="
-                        background: linear-gradient(
-                            to bottom,
-                            rgba(255, 255, 255, 0.3),
-                            transparent
-                        );
-                    "
-                ></div>
-                <span
-                    class="font-mono text-[10px] tracking-[.18em] uppercase text-white/30"
-                    >Scroll</span
-                >
-            </div>
-        </section>
-
-        <!-- ══════════ STATS ══════════ -->
-        <div class="bg-navy border-y border-brass/15 py-14">
-            <div
-                class="max-w-5xl mx-auto px-8 grid grid-cols-2 md:grid-cols-4 gap-10 text-center"
-            >
-                <div v-for="stat in stats" :key="stat.label">
-                    <div
-                        class="font-display text-brass font-bold leading-none mb-2 stat-num"
-                    >
-                        {{ stat.num }}
-                    </div>
-                    <div
-                        class="font-mono text-white/45 text-[10px] tracking-[.16em] uppercase"
-                    >
-                        {{ stat.label }}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ══════════ ABOUT ══════════ -->
-        <section id="about" class="py-28 bg-sand">
-            <div class="max-w-6xl mx-auto px-8">
-                <div class="grid md:grid-cols-2 gap-20 items-center">
-                    <div class="relative">
-                        <div
-                            class="aspect-[4/3] rounded-sm overflow-hidden relative"
-                            style="
-                                background: linear-gradient(
-                                    135deg,
-                                    #133558 0%,
-                                    #1a6896 55%,
-                                    #2a8dc4 100%
-                                );
-                            "
-                        >
-                            <svg
-                                class="absolute inset-0 w-full h-full opacity-20"
-                                viewBox="0 0 400 300"
-                                xmlns="http://www.w3.org/2000/svg"
-                                preserveAspectRatio="xMidYMid slice"
-                            >
-                                <path
-                                    fill="white"
-                                    d="M40 200 L80 140 L120 100 L150 60 L200 40 L250 60 L280 100 L320 140 L360 200Z"
-                                />
-                                <path
-                                    fill="white"
-                                    d="M30 200 L370 200 L350 240 L50 240Z"
-                                />
-                                <rect
-                                    fill="white"
-                                    x="148"
-                                    y="95"
-                                    width="7"
-                                    height="105"
-                                />
-                                <path
-                                    fill="white"
-                                    d="M155 95 L260 110 L155 125Z"
-                                />
-                            </svg>
-                            <div
-                                class="absolute bottom-0 left-0 right-0 h-1/3"
-                                style="
-                                    background: linear-gradient(
-                                        180deg,
-                                        transparent,
-                                        rgba(12, 30, 53, 0.6)
-                                    );
-                                "
-                            ></div>
-                        </div>
-                        <div
-                            class="absolute -bottom-5 -right-5 w-28 h-28 bg-brass rounded-full flex flex-col items-center justify-center text-center shadow-xl"
-                        >
-                            <span
-                                class="font-display text-navy font-bold leading-none"
-                                style="font-size: 1.9rem"
-                                >10+</span
-                            >
-                            <span
-                                class="font-mono text-navy text-[9px] tracking-[.1em] uppercase mt-1 leading-snug"
-                                >Years<br />of Service</span
-                            >
-                        </div>
-                    </div>
-                    <div>
-                        <p
-                            class="font-mono text-brass text-[11px] tracking-[.2em] uppercase mb-3"
-                        >
-                            About Butal Ship Hauz
-                        </p>
-                        <h2
-                            class="font-display text-navy font-bold leading-tight mb-5 section-title"
-                        >
-                            Bohol's Iconic<br />Ship-Shaped Landmark
-                        </h2>
-                        <p
-                            class="font-body text-mist text-base leading-relaxed mb-4"
-                        >
-                            Nestled in the heart of Talibon, Bohol, Butal Ship
-                            Hauz is a beloved landmark that has captured the
-                            imagination of thousands of visitors. Its remarkable
-                            ship-shaped architecture is unlike anything else in
-                            the Philippines.
-                        </p>
-                        <p
-                            class="font-body text-mist text-base leading-relaxed"
-                        >
-                            Beyond its stunning exterior, Butal Ship Hauz offers
-                            a full range of hospitality services from intimate
-                            gatherings and grand celebrations to comfortable
-                            accommodations and unforgettable island adventures.
-                        </p>
-                        <div class="mt-10 space-y-6">
-                            <div
-                                v-for="feat in features"
-                                :key="feat.title"
-                                class="flex gap-4 items-start"
-                            >
-                                <div
-                                    class="flex-shrink-0 w-9 h-9 bg-navy rounded-sm flex items-center justify-center"
-                                >
-                                    <svg
-                                        class="w-4 fill-brass"
-                                        viewBox="0 0 24 24"
-                                        v-html="feat.icon"
-                                    ></svg>
-                                </div>
-                                <div>
-                                    <strong
-                                        class="block font-body font-semibold text-navy text-sm mb-1"
-                                        >{{ feat.title }}</strong
-                                    >
-                                    <p
-                                        class="font-body text-mist text-sm leading-relaxed"
-                                    >
-                                        {{ feat.desc }}
-                                    </p>
-                                </div>
-                            </div>
+                            </template>
                         </div>
                     </div>
                 </div>
-            </div>
-        </section>
+            </nav>
+        </header>
 
-        <!-- ══════════ SERVICES ══════════ -->
-        <section id="services" class="py-28 bg-white">
-            <div class="max-w-6xl mx-auto px-8">
-                <div class="mb-14">
-                    <p
-                        class="font-mono text-brass text-[11px] tracking-[.2em] uppercase mb-3"
-                    >
-                        Services & Packages
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- 2. HERO SECTION WITH CLEAR, COMFORTABLE CONTRAST       -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <section id="home" class="relative pt-36 pb-20 lg:pt-44 lg:pb-32 overflow-hidden bg-sky-900 bg-cover bg-center bg-no-repeat" style="background-image: url('/images/landmark.jpg');">
+            <!-- Clear & balanced overlay: not too dark, rich color depth -->
+            <div class="absolute inset-0 bg-gradient-to-b from-sky-950/75 via-sky-900/65 to-sky-950/85 z-0"></div>
+
+            <div class="relative z-10 max-w-7xl mx-auto px-6 md:px-8">
+                <!-- Hero Heading & Trust Badge -->
+                <div class="text-center max-w-4xl mx-auto mb-10">
+                    <div class="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/20 border border-white/30 backdrop-blur-md mb-6 shadow-sm">
+                        <span class="w-2.5 h-2.5 rounded-full bg-lime-400 animate-ping"></span>
+                        <span class="font-mono text-xs font-bold tracking-widest uppercase text-white drop-shadow-sm">Bohol's Premier Ship Landmark</span>
+                    </div>
+
+                    <h1 class="font-display text-white font-black leading-[1.08] text-4xl sm:text-6xl md:text-7xl mb-6 tracking-tight drop-shadow-md">
+                        Celebrate Milestones Aboard Bohol's Most <span class="text-amber-300 italic">Iconic Landmark</span>
+                    </h1>
+
+                    <p class="font-body text-white font-medium text-lg sm:text-xl leading-relaxed max-w-2xl mx-auto drop-shadow">
+                        From romantic sunset deck weddings to grand debutante balls and corporate galas. Reserve your dates with all-inclusive sound, stage, and coastal views in Talibon, Bohol.
                     </p>
-                    <h2
-                        class="font-display text-navy font-bold leading-tight section-title"
-                    >
-                        Everything You Need<br />Under One Deck
-                    </h2>
                 </div>
-                <div class="grid md:grid-cols-3 gap-6">
-                    <div
-                        v-for="svc in services"
-                        :key="svc.title"
-                        class="card-hover border border-slate-100 rounded-sm overflow-hidden bg-white"
-                    >
-                        <div
-                            class="h-48 relative flex items-center justify-center overflow-hidden"
-                            :style="{ background: svc.gradient }"
-                        >
-                            <svg
-                                class="w-1/2 opacity-25 fill-white"
-                                viewBox="0 0 100 80"
-                                v-html="svc.icon"
-                            ></svg>
-                            <span
-                                class="absolute top-4 left-4 font-mono text-[10px] tracking-[.14em] uppercase bg-black/40 text-brass px-2.5 py-1 rounded-sm"
-                                >{{ svc.tag }}</span
-                            >
+
+                <!-- ─── BRIGHT, CRISP QUICK-RESERVE / AVAILABILITY FINDER ─── -->
+                <div class="max-w-5xl mx-auto bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-5 border-b border-slate-200">
+                        <div class="flex items-center gap-2.5 text-slate-900 font-black text-base sm:text-lg">
+                            <div class="w-9 h-9 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
+                                <font-awesome-icon icon="fa-solid fa-calendar-days" />
+                            </div>
+                            <span>Check Available Spaces & Calculate Rates</span>
                         </div>
-                        <div class="p-6">
-                            <h3
-                                class="font-display text-navy font-bold text-xl mb-2"
+                        <div class="flex items-center gap-4 text-xs font-bold text-slate-600">
+                            <span class="flex items-center gap-1.5 text-emerald-700">
+                                <font-awesome-icon icon="fa-solid fa-circle-check" /> Instant Date Check
+                            </span>
+                            <span class="flex items-center gap-1.5 text-sky-800">
+                                <font-awesome-icon icon="fa-solid fa-shield-halved" /> 50% Downpayment
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Quick Search Form Fields (Pure white inputs, dark crisp text) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <!-- 1. Occasion / Event Type -->
+                        <div class="flex flex-col text-left">
+                            <label class="font-mono text-xs font-bold uppercase tracking-wider text-slate-800 mb-1.5 flex items-center gap-1.5">
+                                <font-awesome-icon icon="fa-solid fa-ring" class="text-orange-500 text-xs" /> Event Occasion
+                            </label>
+                            <select 
+                                v-model="searchForm.eventType"
+                                class="w-full bg-white border-2 border-slate-200 hover:border-slate-300 rounded-xl px-3.5 py-3 text-slate-900 text-sm font-bold focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all cursor-pointer shadow-sm"
                             >
-                                {{ svc.title }}
+                                <option value="">Any Occasion / General</option>
+                                <option v-for="type in eventTypesList" :key="type.value" :value="type.value">
+                                    {{ type.label }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- 2. Target Date -->
+                        <div class="flex flex-col text-left">
+                            <label class="font-mono text-xs font-bold uppercase tracking-wider text-slate-800 mb-1.5 flex items-center gap-1.5">
+                                <font-awesome-icon icon="fa-solid fa-calendar-day" class="text-orange-500 text-xs" /> Preferred Date
+                            </label>
+                            <input 
+                                type="date" 
+                                v-model="searchForm.date"
+                                :min="todayStr"
+                                class="w-full bg-white border-2 border-slate-200 hover:border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-900 text-sm font-bold focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all cursor-pointer shadow-sm"
+                            />
+                        </div>
+
+                        <!-- 3. Estimated Guests -->
+                        <div class="flex flex-col text-left">
+                            <label class="font-mono text-xs font-bold uppercase tracking-wider text-slate-800 mb-1.5 flex items-center gap-1.5">
+                                <font-awesome-icon icon="fa-solid fa-users" class="text-orange-500 text-xs" /> Guest Count
+                            </label>
+                            <select 
+                                v-model="searchForm.guests"
+                                class="w-full bg-white border-2 border-slate-200 hover:border-slate-300 rounded-xl px-3.5 py-3 text-slate-900 text-sm font-bold focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all cursor-pointer shadow-sm"
+                            >
+                                <option v-for="range in guestRanges" :key="range.value" :value="range.value">
+                                    {{ range.label }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- 4. Time Slot -->
+                        <div class="flex flex-col text-left">
+                            <label class="font-mono text-xs font-bold uppercase tracking-wider text-slate-800 mb-1.5 flex items-center gap-1.5">
+                                <font-awesome-icon icon="fa-solid fa-clock" class="text-orange-500 text-xs" /> Time Session
+                            </label>
+                            <select 
+                                v-model="searchForm.timeSlot"
+                                class="w-full bg-white border-2 border-slate-200 hover:border-slate-300 rounded-xl px-3.5 py-3 text-slate-900 text-sm font-bold focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all cursor-pointer shadow-sm"
+                            >
+                                <option v-for="slot in timeSlots" :key="slot.value" :value="slot.value">
+                                    {{ slot.label }}
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Search CTA Button & Quick Action -->
+                    <div class="mt-6 pt-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div class="text-xs text-slate-600 font-medium text-center sm:text-left">
+                            💡 Need an ocular tour or customized setup? Call reservations at <strong class="text-slate-900 font-bold">+63 912 345 6789</strong>
+                        </div>
+                        <button 
+                            @click="handleQuickSearch"
+                            type="button"
+                            class="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm px-8 py-3.5 rounded-xl transition-all duration-200 shadow-md shadow-orange-500/25 hover:-translate-y-0.5 active:translate-y-0"
+                        >
+                            <font-awesome-icon icon="fa-solid fa-magnifying-glass" />
+                            <span>Check Available Spaces</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ─── Trust Metrics Strip (Crisp White & Amber) ─── -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto mt-14 pt-8 border-t border-white/20 text-white">
+                    <div class="flex flex-col items-center text-center">
+                        <span class="font-display font-black text-3xl sm:text-4xl text-amber-300 drop-shadow">350+</span>
+                        <span class="text-xs text-white font-bold uppercase tracking-wider mt-1 drop-shadow">Max Guest Capacity</span>
+                    </div>
+                    <div class="flex flex-col items-center text-center">
+                        <span class="font-display font-black text-3xl sm:text-4xl text-amber-300 drop-shadow">500+</span>
+                        <span class="text-xs text-white font-bold uppercase tracking-wider mt-1 drop-shadow">Events Hosted</span>
+                    </div>
+                    <div class="flex flex-col items-center text-center">
+                        <span class="font-display font-black text-3xl sm:text-4xl text-amber-300 drop-shadow">100%</span>
+                        <span class="text-xs text-white font-bold uppercase tracking-wider mt-1 drop-shadow">Generator Backed</span>
+                    </div>
+                    <div class="flex flex-col items-center text-center">
+                        <span class="font-display font-black text-3xl sm:text-4xl text-amber-300 drop-shadow">4.9 ★</span>
+                        <span class="text-xs text-white font-bold uppercase tracking-wider mt-1 drop-shadow">Client Satisfaction</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- 3. FEATURED VENUE SPACES & PACKAGES                    -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <section id="venues" class="py-24 sm:py-32 bg-slate-50 scroll-mt-20 relative">
+            <div class="max-w-7xl mx-auto px-6 md:px-8">
+                
+                <!-- Section Header -->
+                <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-14">
+                    <div>
+                        <div class="inline-flex items-center gap-2 mb-3">
+                            <span class="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
+                            <span class="font-mono text-xs font-bold uppercase tracking-[.2em] text-orange-600">Event Spaces & Packages</span>
+                        </div>
+                        <h2 class="font-display text-slate-900 font-black text-3xl sm:text-5xl tracking-tight leading-tight">
+                            Choose Your Signature Deck
+                        </h2>
+                        <p class="font-body text-slate-600 text-base sm:text-lg mt-3 max-w-xl font-medium">
+                            Each deck and function hall offers a distinct ambiance, complete lighting setup, stage, and dedicated service crew.
+                        </p>
+                    </div>
+
+                    <!-- Category Filter Tabs -->
+                    <div class="flex flex-wrap gap-2 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm">
+                        <button
+                            v-for="tab in [
+                                { key: 'all', label: 'All Spaces' },
+                                { key: 'grand-deck', label: 'Grand Ballrooms' },
+                                { key: 'outdoor-terrace', label: 'Sunset Terraces' },
+                                { key: 'intimate', label: 'Function Halls' },
+                            ]"
+                            :key="tab.key"
+                            @click="activeCategoryFilter = tab.key"
+                            :class="[
+                                activeCategoryFilter === tab.key
+                                    ? 'bg-slate-900 text-white shadow-sm'
+                                    : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100',
+                                'px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all'
+                            ]"
+                        >
+                            {{ tab.label }}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Venue Cards Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div 
+                        v-for="venue in filteredVenues" 
+                        :key="venue.id" 
+                        :class="[
+                            'group bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col',
+                            searchedHighlight ? 'ring-2 ring-orange-500 ring-offset-4' : ''
+                        ]"
+                    >
+                        <!-- Venue Image Banner with Fallback Error Handler -->
+                        <div class="relative h-64 overflow-hidden bg-slate-100 flex-shrink-0">
+                            <img 
+                                :src="resolveImageUrl(venue.image, '/images/venue.jpg')" 
+                                :alt="venue.title" 
+                                @error="handleImageError($event, '/images/venue.jpg')"
+                                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                            />
+                            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/20"></div>
+
+                            <!-- Venue Tag -->
+                            <div class="absolute top-4 left-4">
+                                <span class="bg-white text-slate-900 font-mono text-[11px] font-bold px-3 py-1.5 rounded-lg shadow uppercase tracking-wider">
+                                    {{ venue.tag }}
+                                </span>
+                            </div>
+
+                            <!-- Capacity Badge -->
+                            <div class="absolute top-4 right-4">
+                                <span class="bg-sky-900 text-white font-body text-xs font-bold px-3 py-1.5 rounded-lg shadow flex items-center gap-1.5">
+                                    <font-awesome-icon icon="fa-solid fa-users" class="text-amber-300" />
+                                    Up to {{ venue.guests }} Pax
+                                </span>
+                            </div>
+
+                            <!-- Price Tag on Image -->
+                            <div class="absolute bottom-4 left-4 right-4 flex items-end justify-between text-white">
+                                <div>
+                                    <span class="text-[11px] font-mono uppercase tracking-wider text-amber-300 font-bold block drop-shadow">Package Rate Starts At</span>
+                                    <div class="text-2xl sm:text-3xl font-black font-display text-white drop-shadow-md">
+                                        ₱{{ Number(venue.price).toLocaleString() }}
+                                        <span class="text-xs font-bold text-slate-200 font-body">/ slot</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card Body -->
+                        <div class="p-6 sm:p-7 flex flex-col flex-1">
+                            <h3 class="font-display text-slate-900 font-black text-2xl mb-2.5 group-hover:text-orange-600 transition-colors">
+                                {{ venue.title }}
                             </h3>
-                            <p
-                                class="font-body text-mist text-sm leading-relaxed"
-                            >
-                                {{ svc.desc }}
+
+                            <p class="font-body text-slate-600 text-sm leading-relaxed mb-4 line-clamp-2 font-medium">
+                                {{ venue.description }}
                             </p>
-                            <div
-                                class="flex items-baseline gap-2 mt-5 pt-5 border-t border-slate-100"
-                            >
-                                <span
-                                    class="font-mono text-mist text-[10px] tracking-widest uppercase"
-                                    >From</span
+
+                            <!-- Available Events Badges -->
+                            <div v-if="venue.availableEvents && venue.availableEvents.length" class="mb-4 pt-3 border-t border-slate-100">
+                                <span class="font-mono text-[11px] uppercase tracking-wider text-slate-700 font-bold block mb-2">
+                                    Available for Events:
+                                </span>
+                                <div class="flex flex-wrap gap-1.5">
+                                    <span 
+                                        v-for="evt in venue.availableEvents" 
+                                        :key="evt.id"
+                                        class="inline-flex items-center gap-1.5 text-xs font-bold bg-orange-50 text-orange-950 border border-orange-200/90 px-2.5 py-1 rounded-lg shadow-2xs"
+                                    >
+                                        <span class="text-orange-500 text-[11px]">🎉</span>
+                                        <span>{{ evt.name }}</span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Key Amenities Pills -->
+                            <div class="space-y-2 mb-6 pt-3 border-t border-slate-100 flex-1">
+                                <span class="font-mono text-[11px] uppercase tracking-wider text-slate-700 font-bold block">Included Highlights:</span>
+                                <div class="flex flex-wrap gap-1.5">
+                                    <span 
+                                        v-for="feat in (venue.features || ['Scenic Ocean View', 'Stage Ready', 'Pro Sound'])" 
+                                        :key="feat"
+                                        class="inline-flex items-center gap-1 text-xs font-semibold bg-sky-50 text-sky-900 border border-sky-100 px-2.5 py-1 rounded-md"
+                                    >
+                                        <font-awesome-icon icon="fa-solid fa-check" class="text-emerald-600 text-[10px]" />
+                                        {{ feat }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Dual Action Buttons -->
+                            <div class="pt-4 border-t border-slate-100 flex flex-col gap-2.5">
+                                <!-- Book Button -->
+                                <Link 
+                                    v-if="$page.props.auth.user && $page.props.auth.user.role === 'client'"
+                                    :href="route('client.booking.index', { venue_id: venue.id })"
+                                    class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm px-4 py-3 rounded-xl transition-all shadow-md shadow-orange-500/20 hover:-translate-y-0.5"
                                 >
-                                <span
-                                    class="font-display text-brass font-bold text-2xl"
-                                    >{{ svc.price }}</span
+                                    <font-awesome-icon icon="fa-solid fa-calendar-check" />
+                                    Book This Space
+                                </Link>
+                                
+                                <Link 
+                                    v-else-if="$page.props.auth.user && $page.props.auth.user.role === 'admin'"
+                                    :href="route('admin.venue-packages.index')"
+                                    class="w-full inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm px-4 py-3 rounded-xl transition-colors border border-slate-200"
                                 >
-                                <span class="font-body text-mist text-xs">{{
-                                    svc.unit
-                                }}</span>
+                                    <font-awesome-icon icon="fa-solid fa-pen-to-square" />
+                                    Edit Space in Admin
+                                </Link>
+
+                                <Link 
+                                    v-else
+                                    :href="route('register')"
+                                    class="w-full inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm px-4 py-3 rounded-xl transition-all shadow hover:-translate-y-0.5"
+                                >
+                                    <font-awesome-icon icon="fa-solid fa-calendar-check" />
+                                    Reserve / Book Date
+                                </Link>
+
+                                <!-- View Details & Inclusions Modal Trigger -->
+                                <button 
+                                    @click="openVenueModal(venue)"
+                                    type="button"
+                                    class="w-full inline-flex items-center justify-center gap-1.5 text-slate-700 hover:text-orange-600 font-bold text-xs py-2 transition-colors"
+                                >
+                                    <font-awesome-icon icon="fa-solid fa-circle-info" />
+                                    View Full Inclusions & Layout
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="mt-20 bg-navy rounded-sm overflow-hidden">
-                    <div class="grid md:grid-cols-5">
-                        <div
-                            class="md:col-span-2 p-12 flex flex-col justify-center border-r border-white/10"
-                        >
-                            <p
-                                class="font-mono text-brass text-[11px] tracking-[.2em] uppercase mb-3"
-                            >
-                                Bundle & Save
-                            </p>
-                            <h2
-                                class="font-display text-white font-bold leading-tight text-3xl mb-4"
-                            >
-                                All-in-One Packages
-                            </h2>
-                            <p
-                                class="font-body text-white/50 text-sm leading-relaxed mb-8"
-                            >
-                                Combine accommodations, dining, and tours for
-                                the best value. Perfect for family getaways,
-                                barkada trips, and corporate retreats.
-                            </p>
-                            <a
-                                href="#contact"
-                                class="self-start inline-block bg-brass hover:bg-gold text-navy font-body font-medium text-sm tracking-wide px-6 py-3 rounded-sm transition-colors duration-200"
-                                >Get a Custom Quote</a
-                            >
+
+                <!-- Custom Banquet Inquiries Box -->
+                <div class="mt-16 bg-gradient-to-r from-sky-900 via-sky-950 to-indigo-950 rounded-3xl p-8 sm:p-12 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-8">
+                    <div class="space-y-2 text-center md:text-left">
+                        <span class="font-mono text-xs font-bold uppercase tracking-widest text-amber-300">Custom Event Layouts</span>
+                        <h3 class="font-display text-2xl sm:text-3xl font-black">Planning a Grand Wedding or Multi-Deck Festival?</h3>
+                        <p class="text-sky-100 text-sm max-w-xl font-medium">
+                            We can combine indoor banquet halls and upper open-air sunset terraces to accommodate up to 500+ guests with whole-day exclusive access.
+                        </p>
+                    </div>
+                    <a 
+                        href="#contact" 
+                        class="inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-100 text-slate-900 font-black text-sm px-8 py-4 rounded-xl transition-all shadow-lg hover:-translate-y-0.5 whitespace-nowrap"
+                    >
+                        Inquire Custom Package <font-awesome-icon icon="fa-solid fa-arrow-right" class="text-xs text-orange-500" />
+                    </a>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- 4. HOW BOOKING WORKS                                   -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <section id="how-it-works" class="py-24 bg-white border-y border-slate-200 scroll-mt-20">
+            <div class="max-w-7xl mx-auto px-6 md:px-8">
+                
+                <div class="text-center max-w-2xl mx-auto mb-16">
+                    <div class="inline-flex items-center gap-2 mb-3">
+                        <span class="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
+                        <span class="font-mono text-xs font-bold uppercase tracking-[.2em] text-orange-600">Simple Reservation</span>
+                    </div>
+                    <h2 class="font-display text-slate-900 font-black text-3xl sm:text-5xl tracking-tight leading-tight">
+                        How Booking Your Venue Works
+                    </h2>
+                    <p class="font-body text-slate-600 text-base mt-3 font-medium">
+                        We made securing your special date completely hassle-free with transparent rates and automated digital confirmations.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+                    <div 
+                        v-for="(step, idx) in bookingSteps" 
+                        :key="step.step" 
+                        class="bg-slate-50 rounded-3xl p-8 border border-slate-200 shadow-sm relative flex flex-col group hover:bg-white hover:shadow-xl transition-all duration-300"
+                    >
+                        <div class="flex items-center justify-between mb-6">
+                            <span class="font-display font-black text-5xl text-orange-500 group-hover:scale-110 transition-transform">
+                                {{ step.step }}
+                            </span>
+                            <div class="w-14 h-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center text-xl shadow-md">
+                                <font-awesome-icon :icon="step.icon" />
+                            </div>
                         </div>
-                        <div
-                            class="md:col-span-3 grid md:grid-cols-3 divide-x divide-white/10"
-                        >
-                            <div
-                                v-for="pkg in packages"
-                                :key="pkg.name"
-                                class="p-8 flex flex-col justify-center text-center relative transition-colors duration-200"
-                                :class="
-                                    pkg.featured
-                                        ? 'pkg-featured'
-                                        : 'hover:bg-white/5'
-                                "
-                            >
-                                <div
-                                    v-if="pkg.featured"
-                                    class="absolute top-0 left-0 right-0 h-0.5 bg-brass"
-                                ></div>
-                                <div
-                                    class="font-mono text-brass text-[10px] tracking-[.18em] uppercase mb-4"
-                                >
-                                    {{ pkg.name }}
+
+                        <h3 class="font-display font-black text-xl text-slate-900 mb-3">
+                            {{ step.title }}
+                        </h3>
+
+                        <p class="font-body text-slate-600 text-sm leading-relaxed flex-1 font-medium">
+                            {{ step.desc }}
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- 5. OCCASIONS CATERED SHOWCASE                         -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <section id="occasions" class="py-24 sm:py-32 bg-slate-50 scroll-mt-20">
+            <div class="max-w-7xl mx-auto px-6 md:px-8">
+                
+                <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
+                    <div>
+                        <div class="inline-flex items-center gap-2 mb-3">
+                            <span class="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
+                            <span class="font-mono text-xs font-bold uppercase tracking-[.2em] text-orange-600">Events We Host</span>
+                        </div>
+                        <h2 class="font-display text-slate-900 font-black text-3xl sm:text-5xl tracking-tight leading-tight">
+                            Tailored for Every Life Milestone
+                        </h2>
+                    </div>
+                    <p class="font-body text-slate-600 text-base max-w-md font-medium">
+                        Whether celebrating a fairy-tale wedding, an executive workshop, or an intimate birthday party, our spaces elevate every moment.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div 
+                        v-for="occ in occasions" 
+                        :key="occ.title" 
+                        class="group relative rounded-3xl overflow-hidden bg-slate-900 shadow-md hover:shadow-2xl transition-all duration-300 flex flex-col h-96"
+                    >
+                        <img 
+                            :src="occ.image" 
+                            :alt="occ.title" 
+                            class="absolute inset-0 w-full h-full object-cover opacity-70 group-hover:opacity-50 group-hover:scale-110 transition-all duration-700" 
+                        />
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
+
+                        <div class="relative z-10 p-6 flex flex-col h-full justify-between text-white">
+                            <div>
+                                <span class="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase font-black tracking-widest bg-orange-500 text-white px-3 py-1 rounded-full mb-3 shadow">
+                                    <font-awesome-icon :icon="occ.icon" /> {{ occ.tag }}
+                                </span>
+                            </div>
+
+                            <div>
+                                <div class="font-mono text-xs font-bold text-amber-300 uppercase tracking-wider mb-1 drop-shadow">
+                                    {{ occ.pax }}
                                 </div>
-                                <div
-                                    class="font-display font-bold leading-none mb-3 pkg-price"
-                                    :class="
-                                        pkg.featured
-                                            ? 'text-brass'
-                                            : 'text-white'
-                                    "
-                                    style="font-size: 2.2rem"
-                                >
-                                    {{ pkg.price }}
-                                </div>
-                                <p
-                                    class="font-body text-white/40 text-xs leading-relaxed"
-                                >
-                                    {{ pkg.desc }}
+                                <h3 class="font-display text-2xl font-black leading-tight mb-2 drop-shadow">
+                                    {{ occ.title }}
+                                </h3>
+                                <p class="font-body text-xs text-white leading-relaxed line-clamp-3 font-medium">
+                                    {{ occ.desc }}
                                 </p>
                             </div>
                         </div>
                     </div>
                 </div>
+
             </div>
         </section>
 
-        <!-- ══════════ BLOG ══════════ -->
-        <section id="blog" class="py-28 bg-foam">
-            <div class="max-w-6xl mx-auto px-8">
-                <p
-                    class="font-mono text-brass text-[11px] tracking-[.2em] uppercase mb-3"
-                >
-                    Blog & News
-                </p>
-                <h2
-                    class="font-display text-navy font-bold leading-tight mb-14 section-title"
-                >
-                    Stories from the Ship
-                </h2>
-                <div class="grid md:grid-cols-3 gap-7">
-                    <article
-                        v-for="post in posts"
-                        :key="post.title"
-                        class="card-hover bg-white rounded-sm overflow-hidden"
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- 6. VENUE AMENITIES & TECHNICAL PERKS (BRIGHT & CRISP)  -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <section id="amenities" class="py-24 sm:py-32 bg-white scroll-mt-20 relative border-t border-slate-200">
+            <div class="max-w-7xl mx-auto px-6 md:px-8 relative z-10">
+                
+                <div class="text-center max-w-3xl mx-auto mb-16">
+                    <div class="inline-flex items-center gap-2 mb-3">
+                        <span class="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
+                        <span class="font-mono text-xs font-bold uppercase tracking-[.2em] text-orange-600">Why Choose Butal Ship Hauz</span>
+                    </div>
+                    <h2 class="font-display font-black text-3xl sm:text-5xl text-slate-900 tracking-tight leading-tight">
+                        Built for Flawless Event Execution
+                    </h2>
+                    <p class="font-body text-slate-600 text-base sm:text-lg mt-3 font-medium">
+                        We provide the technical reliability, comfort, and ambiance essential for making your celebration completely stress-free.
+                    </p>
+                </div>
+
+                <!-- Clean, Light-Themed Amenity Cards (Zero eye strain) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div 
+                        v-for="perk in venuePerks" 
+                        :key="perk.title"
+                        class="p-8 rounded-3xl bg-slate-50 border border-slate-200 hover:border-orange-300 hover:bg-white hover:shadow-xl transition-all duration-300 flex gap-5 items-start"
                     >
-                        <div
-                            class="h-44 relative flex items-center justify-center"
-                            :style="{ background: post.gradient }"
-                        >
-                            <svg
-                                class="w-2/5 opacity-25 fill-white"
-                                viewBox="0 0 100 80"
-                                v-html="post.icon"
-                            ></svg>
-                            <span
-                                class="absolute top-4 left-4 font-mono text-navy bg-white/90 text-[10px] tracking-[.1em] px-2.5 py-1 rounded-sm uppercase"
-                                >{{ post.date }}</span
-                            >
+                        <div class="w-12 h-12 rounded-2xl bg-orange-500 text-white flex items-center justify-center text-xl flex-shrink-0 shadow-md shadow-orange-500/25">
+                            <font-awesome-icon :icon="perk.icon" />
                         </div>
-                        <div class="p-6">
-                            <div
-                                class="font-mono text-brass text-[10px] tracking-[.16em] uppercase mb-2"
-                            >
-                                {{ post.category }}
-                            </div>
-                            <h3
-                                class="font-display text-navy font-bold text-lg leading-snug mb-3"
-                            >
-                                {{ post.title }}
+                        <div>
+                            <h3 class="font-display font-black text-xl text-slate-900 mb-2">
+                                {{ perk.title }}
                             </h3>
-                            <p
-                                class="font-body text-mist text-sm leading-relaxed"
+                            <p class="font-body text-slate-600 text-sm leading-relaxed font-medium">
+                                {{ perk.desc }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video Tour Showcase -->
+                <div class="mt-20 rounded-3xl overflow-hidden border border-slate-200 bg-slate-50 p-4 sm:p-6 shadow-lg">
+                    <div class="aspect-video rounded-2xl overflow-hidden relative shadow-inner bg-black">
+                        <video 
+                            src="/images/about-video.mp4" 
+                            class="w-full h-full object-cover" 
+                            autoplay 
+                            loop 
+                            muted 
+                            playsinline
+                            preload="auto"
+                            :muted="true"
+                        ></video>
+                    </div>
+                    <div class="pt-4 px-2 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-bold text-slate-700">
+                        <span class="flex items-center gap-2">
+                            <font-awesome-icon icon="fa-solid fa-play" class="text-orange-500" />
+                            Virtual Ocular Tour — Experience the Ship Hauz Ambience
+                        </span>
+                        <a href="#contact" class="text-orange-600 hover:text-orange-700 underline transition-colors">
+                            Schedule a Personal On-Site Walkthrough &rarr;
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- 7. FREQUENTLY ASKED QUESTIONS                         -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <section id="faq" class="py-24 sm:py-32 bg-slate-50 border-t border-slate-200 scroll-mt-20">
+            <div class="max-w-4xl mx-auto px-6 md:px-8">
+                
+                <div class="text-center mb-16">
+                    <div class="inline-flex items-center gap-2 mb-3">
+                        <span class="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
+                        <span class="font-mono text-xs font-bold uppercase tracking-[.2em] text-orange-600">Event Planner FAQ</span>
+                    </div>
+                    <h2 class="font-display text-slate-900 font-black text-3xl sm:text-5xl tracking-tight leading-tight">
+                        Got Questions About Booking?
+                    </h2>
+                    <p class="font-body text-slate-600 text-base mt-3 font-medium">
+                        Everything you need to know about reserving dates, outside suppliers, ingress setup hours, and policies.
+                    </p>
+                </div>
+
+                <div class="space-y-4">
+                    <div 
+                        v-for="(faq, index) in faqs" 
+                        :key="faq.q"
+                        class="border border-slate-200 rounded-2xl overflow-hidden transition-all duration-200 shadow-sm"
+                        :class="faq.open ? 'bg-white border-orange-300 ring-1 ring-orange-200' : 'bg-white hover:border-slate-300'"
+                    >
+                        <button 
+                            @click="toggleFaq(index)"
+                            type="button"
+                            class="w-full px-6 py-5 text-left flex items-center justify-between gap-4 font-display font-black text-lg sm:text-xl text-slate-900"
+                        >
+                            <span>{{ faq.q }}</span>
+                            <font-awesome-icon 
+                                icon="fa-solid fa-chevron-down" 
+                                class="text-slate-500 text-sm transition-transform duration-300 flex-shrink-0"
+                                :class="{ 'rotate-180 text-orange-500': faq.open }"
+                            />
+                        </button>
+
+                        <div 
+                            v-show="faq.open"
+                            class="px-6 pb-6 pt-1 font-body text-slate-700 text-base leading-relaxed border-t border-slate-100 font-medium"
+                        >
+                            {{ faq.a }}
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- 8. STORIES & RECENT EVENTS FEED                        -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <section id="blog" class="py-24 bg-white border-t border-slate-200 scroll-mt-20">
+            <div class="max-w-7xl mx-auto px-6 md:px-8">
+                
+                <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-14">
+                    <div>
+                        <div class="inline-flex items-center gap-2 mb-3">
+                            <span class="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
+                            <span class="font-mono text-xs font-bold uppercase tracking-[.2em] text-orange-600">Event Highlights & News</span>
+                        </div>
+                        <h2 class="font-display text-slate-900 font-black text-3xl sm:text-5xl tracking-tight leading-tight">
+                            Stories from the Ship
+                        </h2>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div v-if="posts.length === 0" class="col-span-1 md:col-span-3 flex flex-col items-center justify-center py-16 bg-slate-50 border border-dashed border-slate-300 rounded-3xl text-center">
+                        <font-awesome-icon icon="fa-solid fa-newspaper" class="text-3xl text-slate-400 mb-3" />
+                        <p class="text-slate-600 font-bold">New event stories and updates will be featured here soon.</p>
+                    </div>
+
+                    <article 
+                        v-for="post in posts" 
+                        :key="post.id" 
+                        class="group bg-slate-50 hover:bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col"
+                    >
+                        <!-- Cover Image with Direct Link -->
+                        <a
+                            :href="getArticleLink(post)"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="h-52 relative bg-slate-100 overflow-hidden block group/img cursor-pointer"
+                            :title="'Read article: ' + post.title"
+                        >
+                            <img 
+                                v-if="post.image" 
+                                :src="resolveImageUrl(post.image, '/images/blog1.jpg')" 
+                                :alt="post.title" 
+                                @error="handleImageError($event, '/images/blog1.jpg')"
+                                class="w-full h-full object-cover transition-transform duration-700 group-hover/img:scale-105" 
+                            />
+                            <div v-else class="w-full h-full bg-sky-100 flex items-center justify-center text-sky-400">
+                                <font-awesome-icon icon="fa-solid fa-newspaper" class="text-3xl" />
+                            </div>
+                            <div class="absolute inset-0 bg-slate-900/0 group-hover/img:bg-slate-900/30 transition-colors flex items-center justify-center opacity-0 group-hover/img:opacity-100">
+                                <span class="bg-white/95 text-slate-900 text-xs font-bold px-3 py-1.5 rounded-full shadow-md flex items-center gap-1.5">
+                                    <span>Read Article</span>
+                                    <font-awesome-icon icon="fa-solid fa-arrow-up-right-from-square" class="text-[10px] text-orange-600" />
+                                </span>
+                            </div>
+                        </a>
+
+                        <div class="p-6 sm:p-8 flex flex-col flex-1">
+                            <span class="font-mono text-[10px] font-bold uppercase tracking-wider text-orange-700 bg-orange-100 px-2.5 py-1 rounded-md w-max mb-3">
+                                {{ post.category || 'Celebration' }}
+                            </span>
+
+                            <!-- Title: Direct Link -->
+                            <a
+                                :href="getArticleLink(post)"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="block group/title cursor-pointer"
+                                :title="'Read article: ' + post.title"
                             >
+                                <h3 class="font-display text-slate-900 font-black text-xl leading-snug mb-3 group-hover/title:text-orange-600 transition-colors line-clamp-2">
+                                    {{ post.title }}
+                                </h3>
+                            </a>
+
+                            <p class="font-body text-slate-600 text-sm leading-relaxed mb-6 flex-1 line-clamp-3 font-medium">
                                 {{ post.excerpt }}
                             </p>
-                            <a
-                                href="#"
-                                class="inline-flex items-center gap-1.5 mt-5 font-mono text-sea hover:text-navy text-[10px] tracking-[.1em] uppercase transition-colors duration-200"
-                                >Read Article →</a
-                            >
+
+                            <div class="flex items-center justify-between pt-4 border-t border-slate-200">
+                                <span class="font-mono text-xs text-slate-500 font-semibold flex items-center gap-1.5">
+                                    <font-awesome-icon icon="fa-regular fa-calendar" />
+                                    {{ post.post_date ? new Date(post.post_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '' }}
+                                </span>
+
+                                <!-- Read Article Button: ALWAYS Direct Link, Never Modal -->
+                                <a
+                                    :href="getArticleLink(post)"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="text-orange-600 hover:text-orange-700 font-bold text-xs inline-flex items-center gap-1.5 transition-colors group/link px-3 py-1.5 rounded-lg hover:bg-orange-50 cursor-pointer"
+                                    :title="'Read article: ' + post.title"
+                                >
+                                    <span>Read Article</span>
+                                    <font-awesome-icon icon="fa-solid fa-arrow-up-right-from-square" class="text-[10px] group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
+                                </a>
+                            </div>
                         </div>
                     </article>
                 </div>
+
             </div>
         </section>
 
-        <!-- ══════════ CONTACT ══════════ -->
-        <section id="contact" class="py-28 bg-navy">
-            <div class="max-w-6xl mx-auto px-8">
-                <div class="grid md:grid-cols-2 gap-20 items-start">
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- 9. CONTACT, MAP & OCULAR SCHEDULE (HIGH CONTRAST)     -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <section id="contact" class="py-24 sm:py-32 bg-sky-900 text-white scroll-mt-20 relative">
+            <div class="max-w-7xl mx-auto px-6 md:px-8 relative z-10">
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-start">
+                    
+                    <!-- Left: Contact Details & Ocular CTA -->
                     <div>
-                        <p
-                            class="font-mono text-brass text-[11px] tracking-[.2em] uppercase mb-3"
-                        >
-                            Get in Touch
-                        </p>
-                        <h2
-                            class="font-display text-white font-bold leading-tight mb-5 section-title"
-                        >
-                            Set Sail With Us
+                        <div class="inline-flex items-center gap-2 mb-3">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                            <span class="font-mono text-xs font-bold uppercase tracking-[.2em] text-amber-300">Ocular Inspection & Inquiries</span>
+                        </div>
+                        <h2 class="font-display font-black text-3xl sm:text-5xl tracking-tight leading-tight mb-6 text-white">
+                            Schedule Your Visit or Inquire Today
                         </h2>
-                        <p
-                            class="font-body text-white/50 text-base leading-relaxed"
-                        >
-                            Ready to book your visit or inquire about our
-                            packages? Reach out and our crew will get back to
-                            you within 24 hours.
+                        <p class="font-body text-sky-100 text-base sm:text-lg mb-10 leading-relaxed font-medium">
+                            We encourage couples and event planners to walk the decks in person. Feel free to contact our events desk to arrange your complimentary ocular tour.
                         </p>
-                        <div class="mt-12 space-y-8">
-                            <div
-                                v-for="info in contactInfo"
+
+                        <!-- White Contact Cards for 100% Crisp Legibility -->
+                        <div class="space-y-4">
+                            <div 
+                                v-for="info in contactInfo" 
                                 :key="info.label"
-                                class="flex gap-4 items-start"
+                                class="flex items-start gap-4 p-4.5 rounded-2xl bg-white text-slate-800 shadow-md border border-slate-100"
                             >
-                                <div
-                                    class="flex-shrink-0 w-10 h-10 border border-brass/30 bg-brass/10 rounded-sm flex items-center justify-center"
-                                >
-                                    <svg
-                                        class="w-4 fill-brass"
-                                        viewBox="0 0 24 24"
-                                        v-html="info.icon"
-                                    ></svg>
+                                <div class="w-11 h-11 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center text-lg flex-shrink-0">
+                                    <font-awesome-icon :icon="info.icon" />
                                 </div>
                                 <div>
-                                    <div
-                                        class="font-mono text-brass text-[10px] tracking-[.14em] uppercase mb-1"
-                                    >
+                                    <div class="font-mono text-[10px] uppercase font-black tracking-wider text-orange-600 mb-1">
                                         {{ info.label }}
                                     </div>
-                                    <div
-                                        class="font-body text-white/75 text-sm leading-relaxed"
-                                        v-html="info.value"
-                                    ></div>
+                                    <div class="font-body text-sm sm:text-base font-bold text-slate-900">
+                                        {{ info.value }}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div
-                        class="border border-white/10 rounded-sm overflow-hidden"
-                        style="background: rgba(255, 255, 255, 0.05)"
-                    >
-                        <div class="p-6 border-b border-white/10">
-                            <h3
-                                class="font-display text-white font-bold text-2xl"
-                            >
-                                Find Us on the Map
-                            </h3>
-                            <p class="text-white/50 text-sm mt-2">
-                                Butal Ship Hauz, Talibon, Bohol
-                            </p>
+
+                    <!-- Right: Google Map -->
+                    <div class="rounded-3xl overflow-hidden border border-slate-200 bg-white shadow-2xl flex flex-col h-[520px]">
+                        <div class="p-6 border-b border-slate-200 bg-slate-50 flex items-center justify-between text-slate-900">
+                            <div>
+                                <h3 class="font-display font-black text-xl text-slate-900">Interactive Map Location</h3>
+                                <p class="text-slate-600 text-xs font-medium">San Roque, Talibon, Bohol, Philippines</p>
+                            </div>
+                            <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full border border-emerald-200">
+                                Open for Ocular
+                            </span>
                         </div>
-                        <div class="w-full h-[420px]">
+
+                        <div class="flex-1 relative">
                             <iframe
-                                class="w-full h-full"
+                                class="absolute inset-0 w-full h-full hover:opacity-100 transition-opacity"
                                 frameborder="0"
                                 style="border: 0"
                                 referrerpolicy="no-referrer-when-downgrade"
@@ -1012,234 +1428,255 @@ defineProps({
                                 allowfullscreen
                             ></iframe>
                         </div>
-                        <div class="p-6">
-                            <a
+
+                        <div class="p-4 bg-slate-50 border-t border-slate-200">
+                            <a 
                                 href="https://www.google.com/maps?q=10.150360879723529,124.32322880265386"
                                 target="_blank"
-                                class="block text-center w-full bg-brass hover:bg-gold text-navy font-semibold text-sm tracking-wide py-4 rounded-sm transition-colors duration-200"
+                                rel="noopener noreferrer"
+                                class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm py-3.5 rounded-xl transition-all shadow-md"
                             >
-                                📍 Open in Google Maps
+                                <font-awesome-icon icon="fa-solid fa-location-dot" />
+                                Get Driving Directions
                             </a>
                         </div>
                     </div>
+
                 </div>
+
             </div>
         </section>
 
-        <!-- ══════════ FOOTER ══════════ -->
-        <footer
-            class="border-t border-brass/15 pt-16 pb-8"
-            style="background: #060f1c"
-        >
-            <div class="max-w-6xl mx-auto px-8">
-                <div class="grid md:grid-cols-4 gap-12 mb-14">
-                    <div class="md:col-span-1">
-                        <a
-                            href="#home"
-                            class="flex items-center justify-center gap-3 mb-5"
-                        >
-                            <svg
-                                class="w-7 h-7 fill-brass flex-shrink-0"
-                                viewBox="0 0 48 48"
-                            >
-                                <path
-                                    d="M24 6a6 6 0 1 0 0 12A6 6 0 0 0 24 6zm0 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 6c-1.1 0-2 .9-2 2v16.5C15 37 8.5 31 8.5 24H12c.83 0 1.5-.67 1.5-1.5S12.83 21 12 21H6c-.83 0-1.5.67-1.5 1.5S5.17 24 6 24c0 8.84 7.16 16 16 16s16-7.16 16-16h2.5a1.5 1.5 0 0 0 0-3H36c-.83 0-1.5.67-1.5 1.5S35.17 24 36 24c0 7-6.5 13-13.5 13.5V22c0-1.1-.9-2-2-2z"
-                                />
-                            </svg>
-                            <div>
-                                <div
-                                    class="font-display text-white text-sm font-semibold leading-tight"
-                                >
-                                    Butal Ship Hauz
-                                </div>
-                                <div
-                                    class="font-mono text-brass text-[9px] tracking-[.16em] uppercase"
-                                >
-                                    Talibon, Bohol
-                                </div>
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- 10. FOOTER                                             -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <footer class="bg-slate-900 text-slate-300 border-t border-slate-800 pt-20 pb-12">
+            <div class="max-w-7xl mx-auto px-6 md:px-8">
+                
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+                    <!-- Brand Col -->
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-md">
+                                <font-awesome-icon icon="fa-solid fa-ship" class="text-white text-lg" />
                             </div>
-                        </a>
-                        <p
-                            class="font-body text-white/35 text-center text-xs leading-relaxed"
-                        >
-                            Bohol's most iconic ship-themed hospitality landmark
-                            where every visit feels like an adventure at sea.
+                            <div>
+                                <div class="font-display text-white text-lg font-bold leading-tight">Butal Ship Hauz</div>
+                                <div class="font-mono text-amber-400 text-[10px] font-bold tracking-widest uppercase">Talibon, Bohol</div>
+                            </div>
+                        </div>
+
+                        <p class="text-slate-300 text-xs leading-relaxed font-medium">
+                            Bohol's distinctive maritime hospitality landmark offering indoor and open-air decks for weddings, debutante balls, conferences, and celebrations.
                         </p>
+
+                        <!-- Social Icons -->
+                        <div class="flex items-center gap-3 pt-2">
+                            <a 
+                                v-for="social in socials" 
+                                :key="social.label" 
+                                :href="social.url" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                :aria-label="social.label"
+                                class="w-9 h-9 rounded-full bg-slate-800 hover:bg-orange-500 text-slate-300 hover:text-white flex items-center justify-center transition-colors"
+                            >
+                                <svg class="w-4 fill-current" viewBox="0 0 24 24" v-html="social.icon"></svg>
+                            </a>
+                        </div>
                     </div>
-                    <div v-for="col in footerCols" :key="col.heading">
-                        <h4
-                            class="font-mono text-brass text-center text-[10px] tracking-[.2em] uppercase mb-5"
-                        >
+
+                    <!-- Dynamic Navigation Links -->
+                    <div v-for="col in footerCols" :key="col.heading" class="space-y-3">
+                        <h4 class="font-mono text-xs font-bold text-white uppercase tracking-wider">
                             {{ col.heading }}
                         </h4>
-                        <ul
-                            class="space-y-3 list-none p-0 flex flex-col items-center justify-center"
-                        >
+                        <ul class="space-y-2 text-xs">
                             <li v-for="link in col.links" :key="link.label">
-                                <a
-                                    :href="link.href"
-                                    class="font-body text-white/40 hover:text-white/80 text-sm transition-colors duration-200"
-                                    >{{ link.label }}</a
-                                >
+                                <a :href="link.href" class="text-slate-300 hover:text-orange-400 font-medium transition-colors">
+                                    {{ link.label }}
+                                </a>
                             </li>
                         </ul>
                     </div>
                 </div>
-                <div
-                    class="h-px mb-7"
-                    style="
-                        background: linear-gradient(
-                            90deg,
-                            transparent,
-                            rgba(196, 137, 58, 0.4),
-                            transparent
-                        );
-                    "
-                ></div>
-                <div
-                    class="flex flex-col md:flex-row justify-between items-center gap-4"
-                >
-                    <p
-                        class="font-mono text-white/25 text-[10px] tracking-[.08em]"
-                    >
-                        © 2025 Butal Ship Hauz. All rights reserved. Talibon,
-                        Bohol, Philippines.
-                    </p>
-                    <div class="flex gap-3">
-                        <a
-                            v-for="social in socials"
-                            :key="social.label"
-                            href="#"
-                            :aria-label="social.label"
-                            class="w-8 h-8 border border-white/15 hover:border-brass/50 rounded-full flex items-center justify-center transition-colors duration-200"
-                        >
-                            <svg
-                                class="w-3.5 fill-white/50"
-                                viewBox="0 0 24 24"
-                                v-html="social.icon"
-                            ></svg>
-                        </a>
-                    </div>
+
+                <div class="pt-8 border-t border-slate-800 text-xs text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-4 font-medium">
+                    <p>© {{ new Date().getFullYear() }} Butal Ship Hauz Venue & Resort. All rights reserved.</p>
+                    <p class="font-mono text-[11px]">Crafted with pride in Talibon, Bohol, Philippines.</p>
                 </div>
+
             </div>
         </footer>
 
-        <!-- ══════════ CHATBOT FAB ══════════ -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- 11. VENUE INCLUSIONS & DETAILS MODAL                   -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <Modal :show="showVenueModal" max-width="3xl" @close="closeVenueModal">
+            <div v-if="selectedVenue" class="bg-white overflow-hidden rounded-3xl">
+                <!-- Modal Top Banner -->
+                <div class="relative h-64 sm:h-80 w-full bg-slate-900">
+                    <img 
+                        :src="resolveImageUrl(selectedVenue.image, '/images/venue.jpg')" 
+                        :alt="selectedVenue.title" 
+                        @error="handleImageError($event, '/images/venue.jpg')"
+                        class="w-full h-full object-cover" 
+                    />
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+
+                    <button 
+                        @click="closeVenueModal" 
+                        class="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-colors shadow-md backdrop-blur-sm"
+                        aria-label="Close modal"
+                    >
+                        <font-awesome-icon icon="fa-solid fa-xmark" class="text-lg" />
+                    </button>
+
+                    <div class="absolute bottom-6 left-6 right-6 text-white">
+                        <span class="bg-orange-500 text-white font-mono text-[10px] font-bold px-3 py-1 rounded-md uppercase tracking-wider mb-2 inline-block shadow">
+                            {{ selectedVenue.tag }}
+                        </span>
+                        <h2 class="font-display font-black text-2xl sm:text-4xl text-white drop-shadow-md">
+                            {{ selectedVenue.title }}
+                        </h2>
+                    </div>
+                </div>
+
+                <!-- Modal Content -->
+                <div class="p-6 sm:p-8 space-y-6">
+                    <!-- Quick Info Bar -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs">
+                        <div>
+                            <span class="font-mono text-[10px] uppercase font-bold text-slate-500 block">Starting Rate</span>
+                            <strong class="font-display text-xl font-black text-orange-600">₱{{ Number(selectedVenue.price).toLocaleString() }}</strong>
+                        </div>
+                        <div>
+                            <span class="font-mono text-[10px] uppercase font-bold text-slate-500 block">Capacity</span>
+                            <strong class="font-display text-xl font-black text-slate-900">Up to {{ selectedVenue.guests }} Guests</strong>
+                        </div>
+                        <div class="col-span-2 sm:col-span-1">
+                            <span class="font-mono text-[10px] uppercase font-bold text-slate-500 block">Seating Config</span>
+                            <strong class="text-slate-800 font-bold text-xs block leading-tight mt-1">{{ selectedVenue.seating || 'Banquet & Theater' }}</strong>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <h3 class="font-mono text-xs uppercase tracking-wider font-bold text-slate-700 mb-2">Space Overview</h3>
+                        <p class="font-body text-slate-700 text-sm leading-relaxed font-medium">
+                            {{ selectedVenue.description }}
+                        </p>
+                    </div>
+
+                    <!-- Available Events & Rates Breakdown -->
+                    <div v-if="selectedVenue.availableEvents && selectedVenue.availableEvents.length" class="space-y-2.5">
+                        <h3 class="font-mono text-xs uppercase tracking-wider font-bold text-slate-700">Available Event Occasions for this Deck</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <div 
+                                v-for="evt in selectedVenue.availableEvents" 
+                                :key="evt.id"
+                                class="flex items-center justify-between bg-orange-50/70 border border-orange-200/80 px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-900 shadow-2xs"
+                            >
+                                <span class="flex items-center gap-2">
+                                    <span class="text-base">🎉</span>
+                                    <span>{{ evt.name }}</span>
+                                </span>
+                                <span v-if="evt.price" class="text-orange-600 font-mono">
+                                    Starts at ₱{{ Number(evt.price).toLocaleString() }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Inclusions List -->
+                    <div>
+                        <h3 class="font-mono text-xs uppercase tracking-wider font-bold text-slate-700 mb-3">Package Inclusions</h3>
+                        <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs text-slate-800">
+                            <li 
+                                v-for="inc in (selectedVenue.inclusions || ['Full Sound System', 'Tables & Chairs', 'Backup Power', 'Dressing Room'])" 
+                                :key="inc"
+                                class="flex items-center gap-2 bg-emerald-50 text-emerald-900 border border-emerald-200 px-3 py-2 rounded-xl font-semibold"
+                            >
+                                <font-awesome-icon icon="fa-solid fa-check" class="text-emerald-600 flex-shrink-0" />
+                                <span>{{ inc }}</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Modal Actions -->
+                <div class="p-6 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <button 
+                        @click="closeVenueModal" 
+                        class="w-full sm:w-auto px-6 py-3 border border-slate-300 hover:bg-slate-100 text-slate-800 font-bold rounded-xl text-sm transition-colors"
+                    >
+                        Close Preview
+                    </button>
+
+                    <Link 
+                        v-if="$page.props.auth.user && $page.props.auth.user.role === 'client'"
+                        :href="route('client.booking.index', { venue_id: selectedVenue.id })"
+                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm px-8 py-3 rounded-xl transition-all shadow-md shadow-orange-500/20"
+                    >
+                        <font-awesome-icon icon="fa-solid fa-calendar-check" /> Proceed to Book This Deck
+                    </Link>
+                    <Link 
+                        v-else
+                        :href="route('register')"
+                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm px-8 py-3 rounded-xl transition-all shadow-md shadow-orange-500/20"
+                    >
+                        <font-awesome-icon icon="fa-solid fa-user-plus" /> Sign Up & Reserve Date
+                    </Link>
+                </div>
+            </div>
+        </Modal>
+
+
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- 13. STICKY FLOATING QUICK-RESERVE PILL                -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <transition
+            enter-active-class="transition duration-300 ease-out transform"
+            enter-from-class="opacity-0 translate-y-6"
+            enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition duration-200 ease-in transform"
+            leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 translate-y-6"
+        >
+            <div 
+                v-if="isScrolledPastHero" 
+                class="fixed bottom-6 left-6 z-30 hidden md:flex items-center gap-4 bg-white text-slate-900 border border-slate-200 px-5 py-3 rounded-2xl shadow-xl"
+            >
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center text-white shadow-sm">
+                        <font-awesome-icon icon="fa-solid fa-calendar-check" />
+                    </div>
+                    <div class="text-xs">
+                        <div class="font-bold text-slate-900 leading-tight">Ready to lock in your event date?</div>
+                        <div class="text-orange-600 font-mono text-[10px] font-bold">Admiral Grand Deck & Terrace Packages</div>
+                    </div>
+                </div>
+
+                <Link 
+                    :href="$page.props.auth.user ? route('client.booking.index') : route('register')"
+                    class="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs px-4 py-2 rounded-xl transition-all shadow-md shadow-orange-500/20 whitespace-nowrap"
+                >
+                    Book Venue Now
+                </Link>
+            </div>
+        </transition>
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- 14. CHATBOT FAB WIDGET                                 -->
+        <!-- ══════════════════════════════════════════════════════ -->
         <ChatBot />
+
     </div>
 </template>
 
 <style scoped>
-/* ── Waves ── */
-.wave-layer {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 140px;
-    overflow: hidden;
-    pointer-events: none;
-}
-.wave-shape {
-    position: absolute;
-    bottom: 0;
-    width: 220%;
-    height: 100px;
-    background: rgba(26, 104, 150, 0.14);
-    border-radius: 50% 50% 0 0 / 70px 70px 0 0;
-    animation: waveroll 9s ease-in-out infinite;
-}
-.wave-shape:nth-child(2) {
-    background: rgba(19, 53, 88, 0.22);
-    height: 70px;
-    animation-duration: 13s;
-    animation-delay: -4s;
-}
-.wave-shape:nth-child(3) {
-    background: rgba(12, 30, 53, 0.55);
-    height: 46px;
-    animation-duration: 17s;
-    animation-delay: -8s;
-}
-@keyframes waveroll {
-    0%,
-    100% {
-        transform: translateX(-30%) scaleY(1);
-    }
-    50% {
-        transform: translateX(0%) scaleY(1.1);
-    }
-}
-
-/* ── Ship ── */
-.ship-float {
-    animation: shipbob 7s ease-in-out infinite;
-}
-@keyframes shipbob {
-    0%,
-    100% {
-        transform: translateX(-50%) translateY(0);
-    }
-    50% {
-        transform: translateX(-50%) translateY(-12px);
-    }
-}
-
-/* ── Scroll hint ── */
-.pulse-scroll {
-    animation: fadepulse 2.5s ease-in-out infinite;
-}
-@keyframes fadepulse {
-    0%,
-    100% {
-        opacity: 0.4;
-    }
-    50% {
-        opacity: 1;
-    }
-}
-
-/* ── Stars ── */
-.stars {
-    background-image:
-        radial-gradient(
-            1px 1px at 8% 12%,
-            rgba(255, 255, 255, 0.55) 0%,
-            transparent 100%
-        ),
-        radial-gradient(
-            1px 1px at 22% 6%,
-            rgba(255, 255, 255, 0.4) 0%,
-            transparent 100%
-        ),
-        radial-gradient(
-            1.5px 1.5px at 40% 16%,
-            rgba(255, 255, 255, 0.65) 0%,
-            transparent 100%
-        ),
-        radial-gradient(
-            1px 1px at 60% 5%,
-            rgba(255, 255, 255, 0.35) 0%,
-            transparent 100%
-        ),
-        radial-gradient(
-            1px 1px at 76% 18%,
-            rgba(255, 255, 255, 0.45) 0%,
-            transparent 100%
-        ),
-        radial-gradient(
-            1px 1px at 90% 8%,
-            rgba(255, 255, 255, 0.55) 0%,
-            transparent 100%
-        ),
-        radial-gradient(
-            1px 1px at 50% 10%,
-            rgba(255, 255, 255, 0.5) 0%,
-            transparent 100%
-        );
-}
-
-/* ── Nav link underline ── */
+/* ── Nav Link Hover Accent ── */
 .nav-link {
     position: relative;
     text-decoration: none;
@@ -1247,11 +1684,11 @@ defineProps({
 .nav-link::after {
     content: "";
     position: absolute;
-    bottom: -2px;
+    bottom: -6px;
     left: 0;
     right: 0;
-    height: 1px;
-    background: #c4893a;
+    height: 2px;
+    background: #f97316;
     transform: scaleX(0);
     transition: transform 0.2s ease;
 }
@@ -1259,54 +1696,18 @@ defineProps({
     transform: scaleX(1);
 }
 
-/* ── Hamburger lines ── */
-.hamburger-line {
-    display: block;
-    width: 18px;
-    height: 1.5px;
-    background: rgba(255, 255, 255, 0.7);
-    border-radius: 1px;
-    transition:
-        transform 0.25s ease,
-        opacity 0.2s ease;
-    transform-origin: center;
+/* ── Custom Scrollbar for Modal ── */
+::-webkit-scrollbar {
+    width: 7px;
 }
-
-/* ── Mobile drawer ── */
-.mobile-drawer-open {
-    max-height: 600px;
+::-webkit-scrollbar-track {
+    background: #f1f5f9; 
 }
-.mobile-drawer-closed {
-    max-height: 0;
-}
-.mobile-nav-item {
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1; 
     border-radius: 4px;
 }
-
-/* ── Cards ── */
-.card-hover {
-    transition:
-        transform 0.25s ease,
-        box-shadow 0.25s ease;
-}
-.card-hover:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 24px 56px rgba(12, 30, 53, 0.13);
-}
-
-/* ── Type sizes ── */
-.hero-title {
-    font-size: clamp(3rem, 7.5vw, 5.8rem);
-}
-.section-title {
-    font-size: clamp(1.9rem, 3.5vw, 2.7rem);
-}
-.stat-num {
-    font-size: 2.6rem;
-}
-
-/* ── Package ── */
-.pkg-featured {
-    background: rgba(196, 137, 58, 0.12);
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8; 
 }
 </style>

@@ -1,6 +1,20 @@
 import '../css/app.css';
 import './bootstrap';
 
+// Prevent external browser extension errors (e.g. Chrome Web Vitals extension reportAllChanges bug) from polluting the console
+if (typeof window !== 'undefined') {
+    window.addEventListener('error', (e) => {
+        if (e && (
+            (e.message && e.message.includes('startTime')) ||
+            (e.error && e.error.stack && e.error.stack.includes('reportAllChanges'))
+        )) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            return true;
+        }
+    }, true);
+}
+
 import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createApp, h } from 'vue';

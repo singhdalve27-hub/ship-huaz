@@ -57,20 +57,20 @@ function typeLabel(type) {
 function iconBgClass(type) {
     return (
         {
-            booking_reminder: "bg-yellow-100",
-            booking_confirmed: "bg-green-100",
-            message: "bg-blue-100",
-        }[type] ?? "bg-gray-100"
+            booking_reminder: "bg-orange-100 text-orange-500 border-orange-200",
+            booking_confirmed: "bg-lime-100 text-lime-600 border-lime-200",
+            message: "bg-sky-100 text-sky-500 border-sky-200",
+        }[type] ?? "bg-slate-100 text-slate-500 border-slate-200"
     );
 }
 
 function badgeClass(type) {
     return (
         {
-            booking_reminder: "bg-yellow-100 text-yellow-800",
-            booking_confirmed: "bg-green-100 text-green-800",
-            message: "bg-blue-100 text-blue-800",
-        }[type] ?? "bg-gray-100 text-gray-700"
+            booking_reminder: "bg-orange-100 text-orange-800",
+            booking_confirmed: "bg-lime-100 text-lime-800",
+            message: "bg-sky-100 text-sky-800",
+        }[type] ?? "bg-slate-100 text-slate-700"
     );
 }
 
@@ -141,72 +141,60 @@ onUnmounted(() => {
     <Head title="Notifications" />
 
     <AuthenticatedLayout>
-        <div class="min-h-screen bg-gray-100 pb-12">
-            <!-- ── Sticky Header ── -->
-            <div class="sticky top-0 z-20 bg-white rounded-xl shadow-lg">
-                <div class="mx-auto px-4 pt-5 pb-0">
+        <div class="min-h-screen bg-slate-50 pb-16">
+            <!-- ── Sticky Header: Maritime Telegraph ── -->
+            <div class="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
+                <div class="mx-auto max-w-4xl px-4 sm:px-8 pt-6 pb-3">
                     <!-- Title row -->
-                    <div
-                        class="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-0 pb-4"
-                    >
-                        <div class="flex items-center gap-3">
-                            <svg
-                                class="w-10 h-10 fill-brass flex-shrink-0"
-                                viewBox="0 0 48 48"
-                            >
-                                <path
-                                    d="M24 6a6 6 0 1 0 0 12A6 6 0 0 0 24 6zm0 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 6c-1.1 0-2 .9-2 2v16.5C15 37 8.5 31 8.5 24H12c.83 0 1.5-.67 1.5-1.5S12.83 21 12 21H6c-.83 0-1.5.67-1.5 1.5S5.17 24 6 24c0 8.84 7.16 16 16 16s16-7.16 16-16h2.5a1.5 1.5 0 0 0 0-3H36c-.83 0-1.5.67-1.5 1.5S35.17 24 36 24c0 7-6.5 13-13.5 13.5V22c0-1.1-.9-2-2-2z"
-                                />
-                            </svg>
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4">
+                        <div class="flex items-center gap-3.5">
+                            <div class="w-11 h-11 bg-gradient-to-br from-sky-900 to-sky-700 rounded-xl flex items-center justify-center border border-sky-600/30 text-orange-400 shadow-sm shrink-0">
+                                <font-awesome-icon icon="fa-solid fa-tower-broadcast" class="text-base" />
+                            </div>
                             <div>
-                                <h1
-                                    class="text-lg font-bold leading-tight text-slate-900"
-                                >
-                                    Notifications
+                                <h1 class="font-display text-2xl font-black leading-tight text-sky-950">
+                                    Shipboard Telegraph & Signals
                                 </h1>
-                                <p
-                                    class="text-xs uppercase tracking-widest text-brass"
-                                >
-                                    The Butal Ship Hauz
+                                <p class="font-mono text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-0.5">
+                                    Passenger Communications • Butal Ship Hauz
                                 </p>
                             </div>
                         </div>
+
                         <!-- Action buttons -->
                         <div class="flex items-center gap-2">
                             <button
                                 v-if="unreadCount > 0"
-                                class="rounded-full border border-gray-500 px-4 py-1.5 text-sm text-gray-500 transition hover:bg-slate-900 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                                class="rounded-xl border border-sky-200 bg-sky-50 px-4 py-2 text-xs font-bold text-sky-800 transition-all hover:bg-sky-100 hover:text-sky-900 shadow-xs flex items-center gap-1.5"
                                 @click="markAllRead"
                             >
-                                <font-awesome-icon
-                                    icon="fa-solid fa-check-double"
-                                />
-                                Mark all read
+                                <font-awesome-icon icon="fa-solid fa-check-double" class="text-orange-500" />
+                                <span>Mark All Read</span>
                             </button>
                         </div>
                     </div>
-                    <hr class="my-1" />
-                    <!-- Tabs -->
-                    <div class="flex">
+                    
+                    <!-- Segmented Tabs -->
+                    <div class="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200 gap-1 w-full sm:w-auto">
                         <button
                             v-for="tab in [
-                                { key: 'all', label: 'All' },
-                                { key: 'booking', label: 'Bookings' },
-                                { key: 'messages', label: 'Messages' },
+                                { key: 'all', label: 'All Signals' },
+                                { key: 'booking', label: 'Reservations' },
+                                { key: 'messages', label: 'Direct Messages' },
                             ]"
                             :key="tab.key"
-                            class="flex flex-1 items-center justify-center gap-1.5 border-b-2 py-3 text-sm font-medium transition"
+                            class="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all"
                             :class="
                                 activeTab === tab.key
-                                    ? 'border-amber-400 text-slate-900'
-                                    : 'border-transparent text-gray-500 hover:text-slate-900'
+                                    ? 'bg-white text-sky-950 shadow-xs'
+                                    : 'text-slate-500 hover:text-sky-900'
                             "
                             @click="activeTab = tab.key"
                         >
                             {{ tab.label }}
                             <span
                                 v-if="tab.key === 'all' && unreadCount"
-                                class="rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-blue-900"
+                                class="rounded-full bg-orange-500 px-1.5 py-0.2 font-mono text-[10px] font-bold text-white shadow-xs"
                             >
                                 {{ unreadCount }}
                             </span>
@@ -216,17 +204,19 @@ onUnmounted(() => {
             </div>
 
             <!-- ── Notification List ── -->
-            <div class="mx-auto mt-5 space-y-3 px-1">
+            <div class="mx-auto mt-8 max-w-4xl space-y-4 px-4 sm:px-8">
                 <!-- Empty state -->
                 <div
                     v-if="filtered.length === 0"
-                    class="flex flex-col items-center gap-2 rounded-xl bg-white py-16 text-center text-gray-400 shadow-sm"
+                    class="flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white py-20 text-center shadow-sm"
                 >
-                    <span class="text-4xl">🔔</span>
-                    <p class="font-medium text-gray-500">
+                    <div class="w-20 h-20 bg-sky-50 rounded-full flex items-center justify-center border border-sky-100 mb-2">
+                        <font-awesome-icon icon="fa-solid fa-bell-slash" class="text-4xl text-sky-300" />
+                    </div>
+                    <p class="font-display text-xl font-bold text-sky-900">
                         No notifications yet
                     </p>
-                    <p class="text-sm">
+                    <p class="text-sm font-medium text-slate-500">
                         We'll let you know when something comes in.
                     </p>
                 </div>
@@ -235,65 +225,62 @@ onUnmounted(() => {
                 <div
                     v-for="notif in filtered"
                     :key="notif.id"
-                    class="overflow-hidden rounded-xl bg-white shadow-sm transition hover:shadow-md"
+                    class="overflow-hidden rounded-xl bg-white shadow-sm transition-shadow hover:shadow-md border"
                     :class="
                         !notif.read
-                            ? 'border-l-4 border-amber-400 bg-amber-60/20'
-                            : 'border-l-4 border-transparent'
+                            ? 'border-orange-200 border-l-4 border-l-orange-500 bg-orange-50/20'
+                            : 'border-slate-200'
                     "
                 >
                     <!-- Top row (clickable) -->
                     <div
-                        class="flex cursor-pointer items-start gap-3 p-4"
+                        class="flex cursor-pointer items-start gap-4 p-5 sm:p-6"
                         @click="markRead(notif)"
                     >
                         <!-- Icon -->
                         <div
-                            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg"
+                            class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border shadow-sm"
                             :class="iconBgClass(notif.type)"
                         >
-                            <span v-if="notif.type === 'booking_reminder'"
-                                >🕐</span
-                            >
-                            <span v-else-if="notif.type === 'booking_confirmed'"
-                                >✅</span
-                            >
-                            <span v-else>💬</span>
+                            <font-awesome-icon v-if="notif.type === 'booking_reminder'" icon="fa-solid fa-clock" class="text-lg" />
+                            <font-awesome-icon v-else-if="notif.type === 'booking_confirmed'" icon="fa-solid fa-check-circle" class="text-lg" />
+                            <font-awesome-icon v-else icon="fa-solid fa-envelope" class="text-lg" />
                         </div>
 
                         <!-- Content -->
                         <div class="min-w-0 flex-1">
                             <!-- Meta row -->
                             <div
-                                class="mb-1 flex flex-wrap items-center gap-1.5"
+                                class="mb-2 flex flex-wrap items-center gap-2"
                             >
                                 <span
-                                    class="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                                    class="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-sm"
                                     :class="badgeClass(notif.type)"
                                 >
                                     {{ typeLabel(notif.type) }}
                                 </span>
                                 <span
                                     v-if="notif.booking_ref"
-                                    class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[10px] text-gray-500"
+                                    class="rounded bg-slate-100 border border-slate-200 px-2 py-0.5 font-mono text-[10px] font-bold text-slate-500 tracking-wider"
                                 >
-                                    {{ notif.booking_ref }}
+                                    REF: {{ notif.booking_ref }}
                                 </span>
                                 <span
-                                    class="ml-auto hidden text-[11px] text-gray-500 sm:inline"
+                                    class="ml-auto hidden text-[11px] font-semibold text-slate-400 sm:inline"
                                 >
                                     {{ formatDate(notif.timestamp) }}
                                 </span>
                             </div>
 
                             <!-- Title -->
-                            <h3 class="text-sm font-semibold text-blue-900">
+                            <h3 class="text-base font-bold text-sky-900 mb-1" :class="{ 'opacity-80': notif.read }">
                                 {{ notif.title }}
                             </h3>
 
                             <!-- Body -->
                             <p
-                                class="mt-0.5 text-sm leading-relaxed text-gray-600"
+                                class="text-sm font-medium leading-relaxed text-slate-600"
+                                :class="{ 'opacity-80': notif.read }"
                             >
                                 {{ notif.body }}
                             </p>
@@ -301,13 +288,13 @@ onUnmounted(() => {
                             <!-- Sender -->
                             <p
                                 v-if="notif.sender === 'admin'"
-                                class="mt-1 text-xs italic text-gray-400"
+                                class="mt-2 font-mono text-[10px] font-semibold uppercase tracking-wider text-slate-400"
                             >
                                 — {{ notif.sender_name }}
                             </p>
 
                             <!-- Mobile time -->
-                            <p class="mt-1 text-[11px] text-gray-400 sm:hidden">
+                            <p class="mt-2 font-mono text-[10px] font-semibold text-slate-400 sm:hidden">
                                 {{ formatDate(notif.timestamp) }}
                             </p>
                         </div>
@@ -315,7 +302,7 @@ onUnmounted(() => {
                         <!-- Unread dot -->
                         <span
                             v-if="!notif.read"
-                            class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-amber-400"
+                            class="mt-2 h-3 w-3 shrink-0 rounded-full bg-orange-500 shadow-sm"
                         />
                     </div>
 
@@ -325,10 +312,10 @@ onUnmounted(() => {
                             expandedThread === notif.id &&
                             (notif.thread.length || notif.canReply)
                         "
-                        class="border-t border-gray-100 bg-gray-50 px-4 py-3"
+                        class="border-t border-slate-100 bg-slate-50 px-5 sm:px-6 py-5"
                     >
                         <!-- Messages -->
-                        <div class="space-y-2.5">
+                        <div class="space-y-4">
                             <div
                                 v-for="msg in notif.thread"
                                 :key="msg.id"
@@ -340,77 +327,77 @@ onUnmounted(() => {
                                 "
                             >
                                 <div
-                                    class="max-w-[78%] rounded-xl px-3 py-2 text-sm"
+                                    class="max-w-[85%] sm:max-w-[70%] rounded-2xl px-4 py-3 text-sm shadow-sm"
                                     :class="
                                         msg.from === 'client'
-                                            ? 'rounded-br-sm bg-blue-900 text-white'
-                                            : 'rounded-bl-sm border border-gray-200 bg-white text-gray-700'
+                                            ? 'rounded-br-sm bg-sky-600 text-white shadow-sky-600/20'
+                                            : 'rounded-bl-sm border border-slate-200 bg-white text-slate-700'
                                     "
                                 >
-                                    <p
-                                        class="mb-0.5 text-[10px] font-bold uppercase tracking-wide opacity-60"
-                                    >
-                                        {{ msg.name }}
-                                    </p>
-                                    <p class="leading-snug">{{ msg.body }}</p>
-                                    <p
-                                        class="mt-1 text-right text-[10px] opacity-50"
-                                    >
-                                        {{ formatDate(msg.timestamp) }}
-                                    </p>
+                                    <div class="flex items-baseline justify-between gap-4 mb-1.5">
+                                        <p
+                                            class="text-[10px] font-bold uppercase tracking-wider"
+                                            :class="msg.from === 'client' ? 'text-sky-200' : 'text-sky-800'"
+                                        >
+                                            {{ msg.name }}
+                                        </p>
+                                        <p
+                                            class="text-[10px] font-medium"
+                                            :class="msg.from === 'client' ? 'text-sky-300' : 'text-slate-400'"
+                                        >
+                                            {{ formatDate(msg.timestamp) }}
+                                        </p>
+                                    </div>
+                                    <p class="leading-relaxed font-medium whitespace-pre-wrap">{{ msg.body }}</p>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Reply -->
-                        <div v-if="notif.canReply" class="mt-3">
+                        <div v-if="notif.canReply" class="mt-5 border-t border-slate-200 pt-5">
                             <!-- Trigger -->
                             <div
                                 v-if="replyingTo !== notif.id"
                                 class="flex justify-end"
                             >
                                 <button
-                                    class="rounded-full border border-blue-900 px-4 py-1.5 text-xs font-medium text-blue-900 transition hover:bg-blue-900 hover:text-white"
+                                    class="rounded-full border border-sky-200 bg-white px-5 py-2 text-xs font-bold text-sky-700 transition-colors hover:bg-sky-50 hover:text-sky-900 shadow-sm"
                                     @click.stop="openReply(notif)"
                                 >
                                     <font-awesome-icon
                                         icon="fa-solid fa-reply"
+                                        class="mr-1"
                                     />
                                     Reply
                                 </button>
                             </div>
 
                             <!-- Reply box -->
-                            <div v-else class="space-y-2">
+                            <div v-else class="space-y-3 relative">
                                 <textarea
                                     v-model="replyText"
                                     rows="3"
-                                    placeholder="Type your reply here…"
-                                    class="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-900/10"
+                                    placeholder="Type your reply here… (Ctrl + Enter to send)"
+                                    class="w-full resize-none rounded-xl border border-slate-300 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition-shadow focus:border-orange-500 focus:ring-1 focus:ring-orange-500 shadow-sm pr-24"
                                     @keydown.ctrl.enter="sendReply(notif)"
                                 />
-                                <div class="flex items-center justify-between">
-                                    <span class="text-[11px] text-gray-400"
-                                        >Ctrl + Enter to send</span
+                                <div class="absolute bottom-4 right-3 flex items-center gap-2">
+                                    <button
+                                        class="rounded-md px-3 py-1.5 text-xs font-bold text-slate-500 transition-colors hover:text-red-500 hover:bg-red-50"
+                                        @click.stop="replyingTo = null"
                                     >
-                                    <div class="flex gap-2">
-                                        <button
-                                            class="rounded-md border border-gray-300 px-3 py-1.5 text-xs text-gray-500 transition hover:border-gray-400"
-                                            @click.stop="replyingTo = null"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            class="rounded-md bg-blue-900 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-950 disabled:cursor-not-allowed disabled:opacity-40"
-                                            :disabled="!replyText.trim()"
-                                            @click.stop="sendReply(notif)"
-                                        >
-                                            Send
-                                            <font-awesome-icon
-                                                icon="fa-solid fa-paper-plane"
-                                            />
-                                        </button>
-                                    </div>
+                                        Cancel
+                                    </button>
+                                    <button
+                                        class="flex items-center justify-center gap-1.5 rounded-md bg-orange-500 px-4 py-1.5 text-xs font-bold text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50 shadow-md shadow-orange-500/20"
+                                        :disabled="!replyText.trim()"
+                                        @click.stop="sendReply(notif)"
+                                    >
+                                        Send
+                                        <font-awesome-icon
+                                            icon="fa-solid fa-paper-plane"
+                                        />
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -419,15 +406,16 @@ onUnmounted(() => {
                     <!-- Expand toggle -->
                     <button
                         v-if="notif.thread.length || notif.canReply"
-                        class="w-full border-t border-gray-100 bg-gray-50 py-2 text-xs font-medium text-blue-900 transition hover:bg-gray-100"
+                        class="w-full border-t border-slate-100 bg-slate-50 py-3 text-xs font-bold uppercase tracking-widest text-sky-700 transition-colors hover:bg-slate-100"
                         @click="toggleThread(notif)"
                     >
+                        <font-awesome-icon :icon="expandedThread === notif.id ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'" class="mr-1" />
                         {{
                             expandedThread === notif.id
-                                ? "▲ Hide thread"
+                                ? "Hide thread"
                                 : notif.thread.length
-                                  ? `▼ View thread (${notif.thread.length})`
-                                  : "▼ Reply"
+                                  ? `View thread (${notif.thread.length})`
+                                  : "Reply to message"
                         }}
                     </button>
                 </div>

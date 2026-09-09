@@ -6,6 +6,7 @@ use App\Models\ChatBotNode;
 use App\Models\ChatBotNodeOption;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Storage;
 
 class ChatBotNodeOptionController extends Controller
 {
@@ -23,13 +24,14 @@ class ChatBotNodeOptionController extends Controller
                     'node_key' => $node->node_key,
                     'message'  => $node->message,
                     'status'   => $node->status,
+                    'images'   => $node->images ? json_decode($node->images) : [],
                     'options'  => $node->allOptions->map(function ($opt) {
                         $data = $opt->option;
                         return [
-                            'option_id'   => $opt->id,
-                            'label'       => $data['label'] ?? '',
+                            'option_id'    => $opt->id,
+                            'label'        => $data['label'] ?? '',
                             'next_node_id' => $data['next_node_id'] ?? null,
-                            'status'      => $opt->status,
+                            'status'       => $opt->status,
                         ];
                     }),
                 ];
@@ -84,10 +86,25 @@ class ChatBotNodeOptionController extends Controller
             'option_node_ids'   => 'required|array|min:1',
             'option_node_ids.*' => 'required|exists:chat_bot_nodes,id',
             'status'            => 'required|in:active,inactive',
+            'images.*'          => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120', // Max 5MB per image
         ]);
  
         $node = ChatBotNode::findOrFail($nodeId);
-        $node->update(['status' => $request->status]);
+        $node->status = $request->status;
+
+        // I-handle ang Image Upload
+        if ($request->hasFile('images')) {
+            $imagePaths = [];
+            foreach ($request->file('images') as $image) {
+                // Ise-save ang file sa storage/app/public/chatbot_images
+                $path = $image->store('chatbot_images', 'public');
+                $imagePaths[] = '/storage/' . $path;
+            }
+            // I-save ang array ng image links bilang JSON sa database
+            $node->images = json_encode($imagePaths);
+        }
+
+        $node->save();
  
         ChatBotNodeOption::where('chat_bot_node_id', $nodeId)->delete();
  
@@ -113,7 +130,10 @@ class ChatBotNodeOptionController extends Controller
      */
     public function destroy(string|int $nodeId)
     {
-         ChatBotNodeOption::where('chat_bot_node_id', $nodeId)->delete();
+        ChatBotNodeOption::where('chat_bot_node_id', $nodeId)->delete();
+
+        // Pwede mo rin idagdag ang logic dito kung gusto mong i-delete yung pictures sa storage
+        // kapag dine-delete yung options, pero mas ligtas i-keep ito sa mismong node management.
 
         return redirect()->route('admin.chat-node-options.index')->with('success', 'Chat Node Option deleted successfully.');
     }

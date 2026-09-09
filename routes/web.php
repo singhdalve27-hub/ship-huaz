@@ -15,6 +15,9 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VenuePackageController;
+use App\Http\Controllers\PostController; // <-- Idinagdag ang PostController
+use App\Models\Post; // <-- Idinagdag ang Post Model
+use App\Models\VenuePackage; // <-- Idinagdag ang VenuePackage Model para sa landing page
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -22,6 +25,10 @@ Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
+        // Kukunin natin ang lahat ng active posts sa database at ipapasa sa Welcome.vue
+        'posts' => Post::where('status', 'active')->latest()->get(),
+        // Kukunin natin ang mga venues na sinet-up ng admin sa database at ipapasa sa Welcome.vue
+        'venues' => VenuePackage::with('eventType')->where('status', 'active')->get(),
     ]);
 })->name('landing-page');
 
@@ -114,6 +121,14 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::delete('/destroy/{nodeId}', [ChatBotNodeOptionController::class, 'destroy'])->name('destroy');
     });
 
+    // <-- BAGONG CMS POSTS ROUTE PARA SA ADMIN -->
+    Route::prefix('posts')->name('posts.')->group(function () {
+        Route::get('/', [PostController::class, 'index'])->name('index');
+        Route::post('/store', [PostController::class, 'store'])->name('store');
+        Route::put('/update/{post}', [PostController::class, 'update'])->name('update');
+        Route::delete('/destroy/{post}', [PostController::class, 'destroy'])->name('destroy');
+    });
+
     Route::get('/profile', function () {
         return Inertia::render('Admin/Profile');
     })->name('profile');
@@ -124,8 +139,50 @@ Route::middleware('auth')->group(function () {
     Route::put('/update-credentials', [ProfileController::class, 'updateCredentials'])->name('update-credentials');
 });
 
-
 Route::get('/api/chatbot', [ChatBotController::class, 'index'])->name('chatbot.index');
 Route::get('/api/chatbot/nodes', [ChatBotController::class, 'nodes'])->name('chatbot.nodes');
+
+// Fallback route para sa /storage files upang maiwasan ang 404 kung hindi naka-link o nawawala ang uploaded files
+Route::get('/storage/{path}', function ($path) {
+    // 1. Tignan kung may totoong file sa storage/app/public/
+    $storageFile = storage_path('app/public/' . $path);
+    if (file_exists($storageFile) && !is_dir($storageFile)) {
+        return response()->file($storageFile);
+    }
+
+    // 2. Tignan kung may totoong file sa public/storage/
+    $publicStorageFile = public_path('storage/' . $path);
+    if (file_exists($publicStorageFile) && !is_dir($publicStorageFile)) {
+        return response()->file($publicStorageFile);
+    }
+
+    // 3. Tignan kung nasa public root mismo
+    $directPublic = public_path($path);
+    if (file_exists($directPublic) && !is_dir($directPublic)) {
+        return response()->file($directPublic);
+    }
+
+    // 4. Graceful fallbacks para maiwasan ang 404 console errors sa production/local
+    if (str_contains($path, 'package_images') || str_contains($path, 'venue')) {
+        $venueFallback = public_path('images/venue.jpg');
+        if (file_exists($venueFallback)) {
+            return response()->file($venueFallback);
+        }
+    }
+
+    if (str_contains($path, 'blog_images') || str_contains($path, 'post')) {
+        $blogFallback = public_path('images/blog1.jpg');
+        if (file_exists($blogFallback)) {
+            return response()->file($blogFallback);
+        }
+    }
+
+    $defaultFallback = public_path('images/venue.jpg');
+    if (file_exists($defaultFallback)) {
+        return response()->file($defaultFallback);
+    }
+
+    abort(404);
+})->where('path', '.*');
 
 require __DIR__ . '/auth.php';

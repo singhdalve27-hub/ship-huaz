@@ -2,8 +2,15 @@
 import { ref, computed, watch } from "vue";
 
 const props = defineProps({
-    data: { type: Array, required: true },
-    columns: { type: Array, required: true },
+    data: {
+        type: Array,
+        default: () => [],
+    },
+    columns: {
+        type: Array,
+        required: true,
+        // e.g. [{ key: 'ref', label: 'Reference #' }, { key: 'status', label: 'Status', slot: 'status' }]
+    },
     actions: {
         type: Object,
         default: () => ({
@@ -12,65 +19,62 @@ const props = defineProps({
             isSearchShow: true,
         }),
     },
-    dateKey: { type: String, default: "date" },
-    initialEmpty: { type: Boolean, default: false },
-    emptyStateMessage: { type: String, default: null },
+    initialEmpty: {
+        type: Boolean,
+        default: false,
+    },
+    emptyStateMessage: {
+        type: String,
+        default: null,
+    },
 });
 
-const emit = defineEmits(["filtered-change"]);
-
-// --- Search & Filter ---
-const searchQuery = ref("");
+// Filters
 const dateFrom = ref("");
 const dateTo = ref("");
-
-// --- Pagination ---
+const searchQuery = ref("");
+const perPage = ref(10);
 const currentPage = ref(1);
-const perPage = ref(5);
-const perPageOptions = [5, 10, 25];
+const perPageOptions = [5, 10, 25, 50];
 
-const filteredBookings = computed(() => {
-    return props.data.filter((b) => {
-        const query = searchQuery.value.toLowerCase();
-        const matchesSearch =
-            !query ||
-            props.columns.some((col) =>
-                String(b[col.key] ?? "")
-                    .toLowerCase()
-                    .includes(query),
-            );
-
-        const date = new Date(b[props.dateKey]);
-        const matchesFrom = !dateFrom.value || date >= new Date(dateFrom.value);
-        const matchesTo = !dateTo.value || date <= new Date(dateTo.value);
-
-        return matchesSearch && matchesFrom && matchesTo;
-    });
-});
-
-const hasActiveFilters = computed(() => {
-    return searchQuery.value || dateFrom.value || dateTo.value;
-});
-
-watch([searchQuery, dateFrom, dateTo, perPage], () => {
+// Reset page on any filter change
+watch([dateFrom, dateTo, searchQuery, perPage], () => {
     currentPage.value = 1;
 });
 
-watch(
-    [filteredBookings, dateFrom, dateTo, hasActiveFilters],
-    () => {
-        emit("filtered-change", {
-            rows: filteredBookings.value,
-            dateFrom: dateFrom.value,
-            dateTo: dateTo.value,
-            hasFilters: hasActiveFilters.value,
-        });
-    },
-    { immediate: true },
-);
+// Filtered data
+const filteredBookings = computed(() => {
+    let result = [...props.data];
 
-const totalPages = computed(
-    () => Math.ceil(filteredBookings.value.length / perPage.value) || 1,
+    // Date range filter
+    if (dateFrom.value) {
+        result = result.filter(
+            (b) => new Date(b.date) >= new Date(dateFrom.value),
+        );
+    }
+    if (dateTo.value) {
+        result = result.filter(
+            (b) => new Date(b.date) <= new Date(dateTo.value),
+        );
+    }
+
+    // Search query across all column keys
+    if (searchQuery.value.trim()) {
+        const query = searchQuery.value.toLowerCase();
+        result = result.filter((row) =>
+            props.columns.some((col) => {
+                const val = row[col.key];
+                return val != null && String(val).toLowerCase().includes(query);
+            }),
+        );
+    }
+
+    return result;
+});
+
+// Pagination
+const totalPages = computed(() =>
+    Math.max(1, Math.ceil(filteredBookings.value.length / perPage.value)),
 );
 
 const paginatedData = computed(() => {
@@ -79,32 +83,47 @@ const paginatedData = computed(() => {
     return filteredBookings.value.slice(start, start + perPage.value);
 });
 
+const goToPage = (page) => {
+    if (page >= 1 && page <= totalPages.value) {
+        currentPage.value = page;
+    }
+};
+
 const visiblePages = computed(() => {
     const total = totalPages.value;
     const current = currentPage.value;
     const delta = 2;
     const pages = [];
 
-    const start = Math.max(1, current - delta);
-    const end = Math.min(total, current + delta);
+    for (
+        let i = Math.max(1, current - delta);
+        i <= Math.min(total, current + delta);
+        i++
+    ) {
+        pages.push(i);
+    }
 
-    if (start > 1) pages.push(1);
-    if (start > 2) pages.push("...");
-    for (let i = start; i <= end; i++) pages.push(i);
-    if (end < total - 1) pages.push("...");
-    if (end < total) pages.push(total);
+    if (pages[0] > 1) {
+        if (pages[0] > 2) pages.unshift("...");
+        pages.unshift(1);
+    }
+    if (pages[pages.length - 1] < total) {
+        if (pages[pages.length - 1] < total - 1) pages.push("...");
+        pages.push(total);
+    }
 
     return pages;
 });
 
-const goToPage = (page) => {
-    if (typeof page === "number") currentPage.value = page;
-};
+const hasActiveFilters = computed(
+    () => dateFrom.value || dateTo.value || searchQuery.value,
+);
 
 const clearFilters = () => {
-    searchQuery.value = "";
     dateFrom.value = "";
     dateTo.value = "";
+    searchQuery.value = "";
+    currentPage.value = 1;
 };
 
 const rangeStart = computed(() =>
@@ -120,176 +139,167 @@ const isShowingResults = computed(
     () => !props.initialEmpty || hasActiveFilters.value,
 );
 </script>
+
 <template>
     <!-- Search & Filters -->
-    <div class="space-y-2 mb-2">
-        <div
-            class="flex flex-col gap-2 sm:flex-row sm:items-center justify-between"
-        >
+    <div class="space-y-3 mb-4">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center justify-between">
             <!-- Filter Row -->
-            <div class="flex flex-wrap gap-2" v-if="actions.isDateFilterShow">
-                <div class="flex items-center gap-1 w-full sm:w-auto">
-                    <span class="text-xs text-gray-500">From</span>
+            <div class="flex flex-wrap items-center gap-3" v-if="actions.isDateFilterShow">
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <span class="text-xs font-bold font-mono uppercase tracking-wider text-slate-700">From</span>
                     <input
                         v-model="dateFrom"
                         type="date"
-                        class="text-xs border border-gray-300 rounded-md py-1.5 w-full sm:w-auto focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white text-gray-700"
+                        class="text-xs font-medium border border-slate-300 rounded-xl px-3 py-2 w-full sm:w-auto focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 bg-white text-slate-800 shadow-xs transition-all"
                     />
                 </div>
 
-                <div class="flex items-center gap-1 w-full sm:w-auto">
-                    <span class="text-xs text-gray-500">To</span>
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <span class="text-xs font-bold font-mono uppercase tracking-wider text-slate-700">To</span>
                     <input
                         v-model="dateTo"
                         type="date"
-                        class="text-xs border border-gray-300 rounded-md py-1.5 w-full sm:w-auto focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white text-gray-700"
+                        class="text-xs font-medium border border-slate-300 rounded-xl px-3 py-2 w-full sm:w-auto focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 bg-white text-slate-800 shadow-xs transition-all"
                     />
                 </div>
 
                 <button
                     v-if="hasActiveFilters"
                     @click="clearFilters"
-                    class="text-xs text-red-500 hover:text-red-700 gap-1 px-2 py-1.5 w-full sm:w-auto rounded-md border border-red-200 hover:bg-red-50 transition-colors"
+                    class="text-xs font-bold text-rose-600 hover:text-rose-700 flex items-center gap-1.5 px-3.5 py-2 w-full sm:w-auto rounded-xl border border-rose-200 hover:bg-rose-50 transition-colors shadow-xs bg-white cursor-pointer"
                 >
                     <font-awesome-icon icon="fa-solid fa-xmark" />
-                    Clear
+                    <span>Clear Filters</span>
                 </button>
             </div>
 
             <!-- Per-page selector -->
-            <div class="flex items-center gap-2" v-if="actions.isPerPageShow">
-                <span class="text-xs text-gray-500">Show</span>
+            <div class="flex items-center gap-2 bg-white border border-slate-200 px-3.5 py-1.5 rounded-xl shadow-xs ml-auto sm:ml-0" v-if="actions.isPerPageShow">
+                <span class="text-xs font-semibold text-slate-600">Show</span>
                 <select
                     v-model="perPage"
-                    class="text-xs border border-gray-300 rounded-md py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white text-gray-700"
+                    class="text-xs border-none bg-transparent py-1 pl-1 pr-6 focus:outline-none focus:ring-0 text-slate-900 font-bold cursor-pointer"
                 >
                     <option v-for="n in perPageOptions" :key="n" :value="n">
                         {{ n }}
                     </option>
                 </select>
-                <span class="text-xs text-gray-500">per page</span>
+                <span class="text-xs font-semibold text-slate-600">entries</span>
             </div>
         </div>
 
-        <div class="flex items-center">
+        <div class="flex items-center" v-if="actions.isSearchShow">
             <!-- Search Bar -->
-            <div class="relative w-full" v-if="actions.isSearchShow">
-                <span
-                    class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 pointer-events-none"
-                >
-                    <font-awesome-icon
-                        icon="fa-solid fa-magnifying-glass"
-                        class="text-xs"
-                    />
+            <div class="relative w-full">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400 pointer-events-none">
+                    <font-awesome-icon icon="fa-solid fa-magnifying-glass" class="text-sm" />
                 </span>
                 <input
                     v-model="searchQuery"
                     type="text"
-                    placeholder="Search..."
-                    class="w-full pl-8 pr-4 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Search table records..."
+                    class="w-full pl-10 pr-4 py-2.5 text-sm font-medium border border-slate-300 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 shadow-xs bg-white text-slate-900 placeholder:text-slate-400 transition-all"
                 />
             </div>
         </div>
     </div>
 
-    <!-- Table -->
-    <div class="overflow-x-auto rounded-md border border-gray-200">
-        <table class="w-full text-center text-sm">
-            <thead>
-                <tr class="bg-navy border-b border-gold">
-                    <th
-                        v-for="col in columns"
-                        :key="col.key"
-                        class="px-3 py-3 border border-stone-400 text-xs font-semibold text-gold uppercase tracking-wider whitespace-nowrap"
+    <!-- Table Container -->
+    <div class="overflow-hidden rounded-2xl border border-slate-200 shadow-sm bg-white">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm border-collapse">
+                <thead>
+                    <tr class="bg-slate-900 border-b-2 border-orange-500">
+                        <th
+                            v-for="col in columns"
+                            :key="col.key"
+                            class="px-5 py-4 border-r border-slate-800 last:border-r-0 text-xs font-bold text-white uppercase tracking-wider whitespace-nowrap"
+                        >
+                            {{ col.label }}
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white text-slate-800">
+                    <tr
+                        v-for="row in paginatedData"
+                        :key="row.id ?? row.ref"
+                        class="hover:bg-orange-50/30 transition-colors"
                     >
-                        {{ col.label }}
-                    </th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100 bg-white text-gray-700">
-                <tr
-                    v-for="row in paginatedData"
-                    :key="row.id ?? row.ref"
-                    class="hover:bg-gray-50 transition-colors"
-                >
-                    <td
-                        v-for="col in columns"
-                        :key="col.key"
-                        class="px-3 py-2.5 border border-stone-400 text-xs whitespace-nowrap"
-                    >
-                        <!-- If column has a slot, let the parent render it -->
-                        <slot
-                            v-if="col.slot"
-                            :name="col.slot"
-                            :row="row"
-                            :value="row[col.key]"
-                        />
+                        <td
+                            v-for="col in columns"
+                            :key="col.key"
+                            class="px-5 py-3.5 border-r border-slate-100 last:border-r-0 whitespace-nowrap"
+                        >
+                            <!-- If column has a slot, let the parent render it -->
+                            <slot
+                                v-if="col.slot"
+                                :name="col.slot"
+                                :row="row"
+                                :value="row[col.key]"
+                            />
 
-                        <!-- Otherwise just render the value -->
-                        <span v-else>{{ row[col.key] ?? "—" }}</span>
-                    </td>
-                </tr>
+                            <!-- Otherwise just render the value -->
+                            <span v-else class="text-slate-800 font-medium">{{ row[col.key] ?? "—" }}</span>
+                        </td>
+                    </tr>
 
-                <!-- Empty State -->
-                <tr v-if="paginatedData.length === 0">
-                    <td
-                        :colspan="columns.length"
-                        class="py-10 text-center text-gray-400"
-                    >
-                        <font-awesome-icon
-                            icon="fa-solid fa-calendar-xmark"
-                            class="text-2xl mb-2 block mx-auto"
-                        />
-                        <p class="text-sm font-medium">
-                            {{
-                                isShowingResults
-                                    ? "No records found"
-                                    : (emptyStateMessage ?? "Apply a filter to view records")
-                            }}
-                        </p>
-                        <p class="text-xs mt-1" v-if="isShowingResults">
-                            Try adjusting your search or filters.
-                        </p>
-                    </td>
-                </tr>
-            </tbody>
+                    <!-- Empty State -->
+                    <tr v-if="paginatedData.length === 0">
+                        <td
+                            :colspan="columns.length"
+                            class="py-16 text-center text-slate-400"
+                        >
+                            <div class="w-14 h-14 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center mx-auto mb-3 text-2xl shadow-xs">
+                                <font-awesome-icon icon="fa-solid fa-folder-open" />
+                            </div>
+                            <p class="text-base font-bold text-slate-900">
+                                {{
+                                    isShowingResults
+                                        ? "No matching records found"
+                                        : (emptyStateMessage ?? "Apply a filter to view records")
+                                }}
+                            </p>
+                            <p class="text-sm font-medium mt-1 text-slate-500" v-if="isShowingResults">
+                                Try clearing your search query or broadening your filters.
+                            </p>
+                        </td>
+                    </tr>
+                </tbody>
 
-            <!-- Optional summary row (e.g. a grand total), supplied by the parent -->
-            <tfoot v-if="$slots.summary && isShowingResults && filteredBookings.length > 0">
-                <slot name="summary" />
-            </tfoot>
-        </table>
+                <!-- Optional summary row (e.g. a grand total) -->
+                <tfoot v-if="$slots.summary && isShowingResults && filteredBookings.length > 0">
+                    <slot name="summary" />
+                </tfoot>
+            </table>
+        </div>
     </div>
 
     <!-- Pagination Footer -->
     <div
         v-if="filteredBookings.length > 0 && isShowingResults"
-        class="flex flex-col sm:flex-row items-center justify-between gap-2 mt-3"
+        class="flex flex-col sm:flex-row items-center justify-between gap-4 mt-5 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs"
     >
         <!-- Range info -->
-        <p class="text-xs text-gray-500">
+        <p class="text-xs font-semibold text-slate-600">
             Showing
-            <span class="font-semibold text-gray-700"
-                >{{ rangeStart }}–{{ rangeEnd }}</span
-            >
+            <span class="font-bold text-slate-900">{{ rangeStart }}–{{ rangeEnd }}</span>
             of
-            <span class="font-semibold text-gray-700">{{
-                filteredBookings.length
-            }}</span>
-            bookings
+            <span class="font-bold text-slate-900">{{ filteredBookings.length }}</span>
+            entries
         </p>
 
         <!-- Page buttons -->
-        <div class="flex items-center gap-1">
+        <div class="flex items-center gap-1.5">
             <!-- Prev -->
             <button
                 @click="currentPage--"
                 :disabled="currentPage === 1"
-                class="px-2 py-1 rounded-md border text-xs transition-colors"
+                class="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold transition-all cursor-pointer"
                 :class="
                     currentPage === 1
-                        ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                        : 'border-gray-300 text-gray-600 hover:bg-gray-100'
+                        ? 'bg-slate-50 text-slate-300 cursor-not-allowed border-slate-200'
+                        : 'bg-white text-slate-700 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-300 shadow-xs'
                 "
             >
                 <font-awesome-icon icon="fa-solid fa-chevron-left" />
@@ -299,17 +309,17 @@ const isShowingResults = computed(
             <template v-for="(page, i) in visiblePages" :key="i">
                 <span
                     v-if="page === '...'"
-                    class="px-1.5 py-1 text-xs text-gray-400"
+                    class="px-2 py-1 text-xs font-bold text-slate-400"
                     >…</span
                 >
                 <button
                     v-else
                     @click="goToPage(page)"
-                    class="min-w-[28px] px-2 py-1 rounded-md border text-xs font-medium transition-colors"
+                    class="min-w-[34px] px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer"
                     :class="
                         page === currentPage
-                            ? 'bg-navy text-gold border-navy'
-                            : 'border-gray-300 text-gray-600 hover:bg-gray-100'
+                            ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white border-transparent shadow-md shadow-orange-500/25'
+                            : 'bg-white border-slate-200 text-slate-700 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-300 shadow-xs'
                     "
                 >
                     {{ page }}
@@ -320,11 +330,11 @@ const isShowingResults = computed(
             <button
                 @click="currentPage++"
                 :disabled="currentPage === totalPages"
-                class="px-2 py-1 rounded-md border text-xs transition-colors"
+                class="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold transition-all cursor-pointer"
                 :class="
                     currentPage === totalPages
-                        ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                        : 'border-gray-300 text-gray-600 hover:bg-gray-100'
+                        ? 'bg-slate-50 text-slate-300 cursor-not-allowed border-slate-200'
+                        : 'bg-white text-slate-700 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-300 shadow-xs'
                 "
             >
                 <font-awesome-icon icon="fa-solid fa-chevron-right" />
