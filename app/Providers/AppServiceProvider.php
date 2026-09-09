@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\ServiceProvider;
 
@@ -27,6 +28,16 @@ class AppServiceProvider extends ServiceProvider
 
         if (env('APP_ENV') !== 'production') {
             URL::forceScheme('https');
+        }
+
+        // Clear stale cached routes if present on shared hosting
+        try {
+            $cachedRoutes = base_path('bootstrap/cache/routes-v7.php');
+            if (file_exists($cachedRoutes)) {
+                @unlink($cachedRoutes);
+            }
+        } catch (\Throwable $e) {
+            // Graceful
         }
 
         $this->ensureDatabaseColumnsExist();
@@ -90,7 +101,7 @@ class AppServiceProvider extends ServiceProvider
             }
 
             // Update dummy phones in messages
-            $nodes = \DB::table('chat_bot_nodes')
+            $nodes = DB::table('chat_bot_nodes')
                 ->where('message', 'LIKE', '%912 345 6789%')
                 ->get();
 
@@ -100,23 +111,23 @@ class AppServiceProvider extends ServiceProvider
                     '0920 713 9299 / 0930 903 6834',
                     $node->message
                 );
-                \DB::table('chat_bot_nodes')->where('id', $node->id)->update(['message' => $newMessage]);
+                DB::table('chat_bot_nodes')->where('id', $node->id)->update(['message' => $newMessage]);
             }
 
             // Update specific location & contact nodes
-            \DB::table('chat_bot_nodes')
+            DB::table('chat_bot_nodes')
                 ->where('node_key', 'Location & Hours')
                 ->update([
                     'message' => "Butal Ship Hauz\nCapawan, Talibon, Bohol, Philippines\nOpen daily for Ocular/Visitors: 8:00 AM to 6:00 PM\nReservations Hotline: 0920 713 9299 / 0930 903 6834"
                 ]);
 
-            \DB::table('chat_bot_nodes')
+            DB::table('chat_bot_nodes')
                 ->where('node_key', 'Directions')
                 ->update([
                     'message' => "Located in Sitio Capawan, Poblacion, Talibon, Bohol. From Tagbilaran City or Tubigon/Ubay Port, ride a bus or van bound for Talibon (approx. 2 hours). Ask the driver to drop you off near Butal Ship Hauz in Capawan!"
                 ]);
 
-            \DB::table('chat_bot_nodes')
+            DB::table('chat_bot_nodes')
                 ->where('node_key', 'Contact Us')
                 ->update([
                     'message' => "Our crew is ready to assist you!\nHotlines: 0920 713 9299 / 0930 903 6834\nEmail: reservations@butalshiphauz.com.ph\nAddress: Capawan, Talibon, Bohol"
