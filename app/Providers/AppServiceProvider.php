@@ -72,6 +72,55 @@ class AppServiceProvider extends ServiceProvider
                     $table->string('link', 1000)->nullable()->after('excerpt');
                 });
             }
+
+            $this->syncChatBotData();
+        } catch (\Throwable $e) {
+            // Continue gracefully
+        }
+    }
+
+    /**
+     * Updates chatbot nodes with official venue location and contact hotlines.
+     */
+    protected function syncChatBotData(): void
+    {
+        try {
+            if (!Schema::hasTable('chat_bot_nodes')) {
+                return;
+            }
+
+            // Update dummy phones in messages
+            $nodes = \DB::table('chat_bot_nodes')
+                ->where('message', 'LIKE', '%912 345 6789%')
+                ->get();
+
+            foreach ($nodes as $node) {
+                $newMessage = str_replace(
+                    ['+63 (0) 912 345 6789', '+63 912 345 6789'],
+                    '0920 713 9299 / 0930 903 6834',
+                    $node->message
+                );
+                \DB::table('chat_bot_nodes')->where('id', $node->id)->update(['message' => $newMessage]);
+            }
+
+            // Update specific location & contact nodes
+            \DB::table('chat_bot_nodes')
+                ->where('node_key', 'Location & Hours')
+                ->update([
+                    'message' => "Butal Ship Hauz\nCapawan, Talibon, Bohol, Philippines\nOpen daily for Ocular/Visitors: 8:00 AM to 6:00 PM\nReservations Hotline: 0920 713 9299 / 0930 903 6834"
+                ]);
+
+            \DB::table('chat_bot_nodes')
+                ->where('node_key', 'Directions')
+                ->update([
+                    'message' => "Located in Sitio Capawan, Poblacion, Talibon, Bohol. From Tagbilaran City or Tubigon/Ubay Port, ride a bus or van bound for Talibon (approx. 2 hours). Ask the driver to drop you off near Butal Ship Hauz in Capawan!"
+                ]);
+
+            \DB::table('chat_bot_nodes')
+                ->where('node_key', 'Contact Us')
+                ->update([
+                    'message' => "Our crew is ready to assist you!\nHotlines: 0920 713 9299 / 0930 903 6834\nEmail: reservations@butalshiphauz.com.ph\nAddress: Capawan, Talibon, Bohol"
+                ]);
         } catch (\Throwable $e) {
             // Continue gracefully
         }

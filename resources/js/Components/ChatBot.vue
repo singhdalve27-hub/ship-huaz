@@ -2,7 +2,6 @@
 import { ref, onMounted } from "vue";
 
 const chatOpen = ref(false);
-
 const chatMessages = ref([]);
 const chatCurrentNodeId = ref(null);
 const chatTyping = ref(false);
@@ -11,8 +10,42 @@ const mainNodeId = ref(null);
 const loading = ref(true);
 const error = ref(false);
 
+// ── Multi-language support (Tagalog, Bisaya, English) ──
+const currentLang = ref('tl'); // 'tl' | 'ceb' | 'en'
+
+const langGreetings = {
+    tl: "Ahoy! Maligayang pagdating sa Butal Ship Hauz (Capawan, Talibon, Bohol)! 🚢 Paano ka namin matutulungan ngayong araw?",
+    ceb: "Ahoy! Maayong pag-abot sa Butal Ship Hauz (Capawan, Talibon, Bohol)! 🚢 Unsay among ikatabang kanimo karong adlawa?",
+    en: "Ahoy! Welcome to Butal Ship Hauz (Capawan, Talibon, Bohol)! 🚢 How may our crew assist you today?",
+};
+
+const cycleLanguage = () => {
+    if (currentLang.value === 'tl') currentLang.value = 'ceb';
+    else if (currentLang.value === 'ceb') currentLang.value = 'en';
+    else currentLang.value = 'tl';
+
+    chatMessages.value.push({
+        from: 'bot',
+        text: langGreetings[currentLang.value]
+    });
+    scrollChat();
+};
+
 // ── Formatter para sa mga presyo ──
 const fmtPrice = (val) => "₱" + Number(val || 0).toLocaleString("en-PH");
+
+// ── Interactive Widgets State ──
+const userInputText = ref("");
+
+// Date Checker State
+const dateInputVal = ref(new Date().toISOString().split("T")[0]);
+const dateCheckLoading = ref(false);
+const dateCheckResult = ref(null);
+
+// Booking Tracker State
+const trackInputVal = ref("");
+const trackLoading = ref(false);
+const trackResult = ref(null);
 
 // ── Reusable function para kumuha ng LIVE data mula sa Backend ──
 const fetchChatbotData = async (isInitial = false) => {
@@ -37,7 +70,7 @@ const fetchChatbotData = async (isInitial = false) => {
             error.value = true;
             chatMessages.value = [{
                 from: "bot",
-                text: "Sorry, I'm having trouble connecting. Please try again later.",
+                text: "Sorry, I'm having trouble connecting to the crew server. Please try again later or call 0920 713 9299.",
             }];
         }
     }
@@ -47,22 +80,30 @@ const fetchChatbotData = async (isInitial = false) => {
 const startConversation = () => {
     chatMessages.value = [];
     const main = nodes.value[mainNodeId.value];
-    if (main) {
-        chatMessages.value.push({ 
-            from: "bot", 
-            text: main.message,
-            images: main.images || [],
-            dynamic_data: main.dynamic_data || null
-        });
-        
-        if (main.options && main.options.length > 0) {
-            chatMessages.value.push({
-                from: "options",
-                label: main.node_key,
-                options: main.options,
-            });
-        }
-    }
+    
+    // Greeting with active language
+    const greetingText = langGreetings[currentLang.value] || (main ? main.message : "Welcome to Butal Ship Hauz!");
+
+    chatMessages.value.push({ 
+        from: "bot", 
+        text: greetingText,
+        images: main ? (main.images || []) : [],
+        dynamic_data: main ? (main.dynamic_data || null) : null
+    });
+    
+    // Top interactive actions + database options
+    const interactiveOptions = [
+        { label: "📅 I-check ang Petsa / Slot Availability", custom_action: "date_checker" },
+        { label: "🔍 I-track ang Aking Booking Status", custom_action: "booking_tracker" },
+    ];
+
+    const dbOptions = main && main.options ? main.options : [];
+    
+    chatMessages.value.push({
+        from: "options",
+        label: "Pangunahing Menu / Main Menu",
+        options: [...interactiveOptions, ...dbOptions],
+    });
 };
 
 // ── Restart button handler ──
@@ -76,19 +117,24 @@ onMounted(() => {
     fetchChatbotData(true);
 });
 
-// ── Option Click Handler (Naging Async para mag-refresh muna bago sumagot) ──
+// ── Option Click Handler ──
 async function handleOption(option) {
+    // Check if custom action
+    if (option.custom_action) {
+        handleCustomAction(option.custom_action);
+        return;
+    }
+
     // 1. I-post ang pinili ng user
     chatMessages.value.push({ from: "user", text: option.label });
     chatTyping.value = true;
     scrollChat();
 
-    // 2. Kumuha ng pinaka-latest na data (LIVE UPDATE) nang patago bago mag-reply!
+    // 2. Kumuha ng pinaka-latest na data (LIVE UPDATE)
     await fetchChatbotData(false);
 
     setTimeout(() => {
         chatTyping.value = false;
-
         const nextNodeId = option.next_node_id;
 
         // 0 or null means "back to main"
@@ -99,7 +145,6 @@ async function handleOption(option) {
         const targetNode = nodes.value[targetId];
 
         if (targetNode) {
-            // Reply ng Bot (Laging fresh galing sa database)
             chatMessages.value.push({ 
                 from: "bot", 
                 text: targetNode.message,
@@ -108,40 +153,281 @@ async function handleOption(option) {
             });
             chatCurrentNodeId.value = targetId;
 
-            // Ipakita ang options ng bagong node
             if (targetNode.options && targetNode.options.length > 0) {
+                // If it's main node, also include the interactive actions
+                let opts = targetNode.options;
+                if (targetId === mainNodeId.value) {
+                    opts = [
+                        { label: "📅 I-check ang Petsa / Slot Availability", custom_action: "date_checker" },
+                        { label: "🔍 I-track ang Aking Booking Status", custom_action: "booking_tracker" },
+                        ...opts
+                    ];
+                }
                 chatMessages.value.push({
                     from: "options",
                     label: targetNode.node_key,
-                    options: targetNode.options,
+                    options: opts,
                 });
             }
         } else {
-            // Fallback kapag biglang na-delete ng admin yung node na dapat pupuntahan
             chatMessages.value.push({ 
                 from: "bot", 
-                text: "Oops! This option seems to have been updated or removed by our crew. Let's start over!" 
+                text: "Oops! This option seems to have been updated by our crew. Let's return to the main menu!" 
             });
-            setTimeout(startConversation, 2000);
+            setTimeout(startConversation, 1500);
         }
 
         scrollChat();
-    }, 600);
+    }, 500);
 }
+
+// ── Custom Actions Handler ──
+function handleCustomAction(action) {
+    if (action === "date_checker") {
+        chatMessages.value.push({ from: "user", text: "📅 I-check ang Petsa / Slot Availability" });
+        chatMessages.value.push({
+            from: "bot",
+            text: currentLang.value === 'ceb'
+                ? "Palihug pilia ang petsa sa ubos aron ma-check nato kung bakante pa ang Butal Ship Hauz:"
+                : "Pumili ng petsa sa ibaba upang mai-check natin kung may bakanteng slot sa Butal Ship Hauz:",
+            custom_widget: "date_checker"
+        });
+        scrollChat();
+    } else if (action === "booking_tracker") {
+        chatMessages.value.push({ from: "user", text: "🔍 I-track ang Aking Booking Status" });
+        chatMessages.value.push({
+            from: "bot",
+            text: currentLang.value === 'ceb'
+                ? "I-enter ang imong Booking Reference Number (pananglitan BSH-XXXXXXXX) o ang cellphone number nga gigamit sa reserbasyon:"
+                : "I-enter ang iyong Booking Reference Number (hal. BSH-XXXXXXXX) o ang cellphone number na ginamit sa reserbasyon:",
+            custom_widget: "booking_tracker"
+        });
+        scrollChat();
+    } else if (action === "main_menu") {
+        startConversation();
+        scrollChat();
+    }
+}
+
+// ── Date Checker Execution ──
+const executeDateCheck = async () => {
+    if (!dateInputVal.value) return;
+    dateCheckLoading.value = true;
+    dateCheckResult.value = null;
+
+    try {
+        const apiUrl = (import.meta.env.VITE_APP_URL ? import.meta.env.VITE_APP_URL : "") + `/api/chatbot/check-date?date=${dateInputVal.value}`;
+        const res = await fetch(apiUrl);
+        const data = await res.json();
+        dateCheckResult.value = data;
+    } catch (e) {
+        dateCheckResult.value = {
+            success: false,
+            message: "Hindi ma-access ang calendar service sa ngayon. Pakisubukan muli o tumawag sa 0920 713 9299."
+        };
+    } finally {
+        dateCheckLoading.value = false;
+        scrollChat();
+    }
+};
+
+// ── Booking Tracking Execution ──
+const executeTrackBooking = async () => {
+    if (!trackInputVal.value || trackInputVal.value.trim().length < 3) return;
+    trackLoading.value = true;
+    trackResult.value = null;
+
+    try {
+        const apiUrl = (import.meta.env.VITE_APP_URL ? import.meta.env.VITE_APP_URL : "") + `/api/chatbot/track-booking?query=${encodeURIComponent(trackInputVal.value.trim())}`;
+        const res = await fetch(apiUrl);
+        const data = await res.json();
+        trackResult.value = data;
+    } catch (e) {
+        trackResult.value = {
+            found: false,
+            message: "Hindi ma-connect sa booking database sa ngayon. Pakisubukan muli mamaya."
+        };
+    } finally {
+        trackLoading.value = false;
+        scrollChat();
+    }
+};
+
+// ── Smart Text Input & Keyword Matcher ──
+const handleUserTextSubmit = () => {
+    const text = userInputText.value.trim();
+    if (!text) return;
+
+    chatMessages.value.push({ from: "user", text: text });
+    userInputText.value = "";
+    chatTyping.value = true;
+    scrollChat();
+
+    setTimeout(() => {
+        chatTyping.value = false;
+        processKeywordIntent(text);
+        scrollChat();
+    }, 450);
+};
+
+const processKeywordIntent = (text) => {
+    const lower = text.toLowerCase();
+
+    // 1. Date Check Intent
+    if (lower.includes("date") || lower.includes("petsa") || lower.includes("available") || lower.includes("bakante") || lower.includes("adlaw") || lower.includes("open") || lower.includes("kelan")) {
+        chatMessages.value.push({
+            from: "bot",
+            text: currentLang.value === 'ceb'
+                ? "Sige! Palihug pilia ang petsa sa ubos aron ma-check nato kung bakante pa:"
+                : "Sige! Pumili ng petsa sa ibaba upang mai-check natin kung may bakanteng slot:",
+            custom_widget: "date_checker"
+        });
+        return;
+    }
+
+    // 2. Track Booking Intent
+    if (lower.includes("track") || lower.includes("status") || lower.includes("reserba") || lower.includes("booking ko") || lower.includes("bsh-") || lower.includes("reperi") || lower.includes("nasaan")) {
+        chatMessages.value.push({
+            from: "bot",
+            text: currentLang.value === 'ceb'
+                ? "Palihug i-type ang imong Booking Reference Number (pananglitan BSH-XXXXXXXX) o imong cellphone number:"
+                : "Pakisulat ang iyong Booking Reference Number (hal. BSH-XXXXXXXX) o cellphone number:",
+            custom_widget: "booking_tracker"
+        });
+        return;
+    }
+
+    // 3. Pricing / Rates / Entrance Fee
+    if (lower.includes("magkano") || lower.includes("pila") || lower.includes("price") || lower.includes("presyo") || lower.includes("rate") || lower.includes("entrance") || lower.includes("bayad") || lower.includes("pax") || lower.includes("cost")) {
+        chatMessages.value.push({
+            from: "bot",
+            text: currentLang.value === 'ceb'
+                ? "Mao kini ang among mga rates sa Butal Ship Hauz:\n\n🎫 Tour / Visitor Pass: ₱150 kada tawo (Walk-in Ocular Tour)\n🚢 Exclusive Venue Packages: Nagsugod sa ₱5,000 alang sa mga okasyon (Kasal, Debut, Birthday, Reunion).\n\nAduna tay Morning Shift, Afternoon Shift, o Whole Day Exclusive options!"
+                : "Narito ang rates sa Butal Ship Hauz:\n\n🎫 Tour / Visitor Pass: ₱150 per head (Walk-in Ocular Tour)\n🚢 Exclusive Venue Packages: Nagsisimula sa ₱5,000 para sa okasyon (Kasal, Debut, Birthday, Reunion).\n\nMayroon tayong Morning, Afternoon, at Whole Day Exclusive options!",
+            action_buttons: [
+                { label: "👉 Mag-Book ng Reservation", href: "/booking?mode=exclusive" },
+                { label: "🎫 Kumuha ng Tour Pass (₱150)", href: "/booking?mode=visitor" },
+            ]
+        });
+        return;
+    }
+
+    // 4. Location / Directions / Address
+    if (lower.includes("saan") || lower.includes("asa") || lower.includes("location") || lower.includes("address") || lower.includes("papunta") || lower.includes("direksyon") || lower.includes("capawan") || lower.includes("talibon") || lower.includes("map")) {
+        chatMessages.value.push({
+            from: "bot",
+            text: "📍 Lokasyon ng Venue:\nButal Ship Hauz, Sitio Capawan, Poblacion, Talibon, Bohol, Philippines\n\n🚗 Paano Makapunta:\nMula sa Tagbilaran City o Tubigon/Ubay port, sumakay ng bus o van papuntang Talibon (approx. 2 hours). Sabihin sa driver na ibaba kayo malapit sa Butal Ship Hauz sa Capawan!\n\nI-click ang button sa ibaba para sa live Google Maps GPS Navigation:",
+            action_buttons: [
+                { label: "🗺️ Buksan sa Google Maps (GPS)", href: "https://www.google.com/maps/search/?api=1&query=Butal+Ship+Hauz,+Capawan,+Talibon,+Bohol", external: true },
+                { label: "📞 Tawagan ang Hotline", href: "tel:09207139299" },
+            ]
+        });
+        return;
+    }
+
+    // 5. Corkage / Catering / Food Policy
+    if (lower.includes("corkage") || lower.includes("pagkain") || lower.includes("kaon") || lower.includes("catering") || lower.includes("lechon") || lower.includes("food") || lower.includes("inom") || lower.includes("lutuin")) {
+        chatMessages.value.push({
+            from: "bot",
+            text: "🍽️ Corkage & Catering Guidelines:\n\n• Outside Catering: Allowed para sa Exclusive Events (maaaring may minimal utility fee depende sa power needs).\n• Lechon & Packed Food: Pinapayagan para sa inyong pagdiriwang.\n• Drinks & Softdrinks: Pinapayagan for private deck events.\n\nPara sa catering assistance at package setups, tumawag sa 0920 713 9299.",
+            action_buttons: [
+                { label: "📞 Tawagan ang Crew", href: "tel:09207139299" }
+            ]
+        });
+        return;
+    }
+
+    // 6. Contact / Phone / Hotline
+    if (lower.includes("tawag") || lower.includes("phone") || lower.includes("contact") || lower.includes("number") || lower.includes("hotline") || lower.includes("cell") || lower.includes("telepono")) {
+        chatMessages.value.push({
+            from: "bot",
+            text: "📞 Opisyal na Contact Hotlines:\n\n• Smart/TNT: 0920 713 9299\n• Globe/TM: 0930 903 6834\n• Email: reservations@butalshiphauz.com.ph\n• Office & Ocular Hours: 8:00 AM – 6:00 PM Araw-araw",
+            action_buttons: [
+                { label: "📞 Tawagan Ngayon (0920 713 9299)", href: "tel:09207139299" },
+                { label: "💬 Mag-SMS Text", href: "sms:09207139299" }
+            ]
+        });
+        return;
+    }
+
+    // 7. Payment / Downpayment
+    if (lower.includes("bayad") || lower.includes("payment") || lower.includes("downpayment") || lower.includes("gcash") || lower.includes("deposit") || lower.includes("bank")) {
+        chatMessages.value.push({
+            from: "bot",
+            text: "💳 Paraan ng Pagbabayad & Downpayment:\n\n• 50% Downpayment ang kinakailangan upang opisyal na ma-block at ma-reserve ang inyong petsa.\n• Tinatanggap ang GCash, Bank Transfer, o Cash on site sa venue office.\n• Ang balance ay binabayaran on the day of the event.",
+            action_buttons: [
+                { label: "👉 Mag-Book ng Reservation", href: "/booking?mode=exclusive" }
+            ]
+        });
+        return;
+    }
+
+    // 8. Language triggers
+    if (lower.includes("bisaya") || lower.includes("cebuano")) {
+        currentLang.value = "ceb";
+        chatMessages.value.push({
+            from: "bot",
+            text: "Maayong adlaw! Gi-set na nako ang pinulongan sa Bisaya. Unsay matabang namo sa Butal Ship Hauz?"
+        });
+        return;
+    } else if (lower.includes("english")) {
+        currentLang.value = "en";
+        chatMessages.value.push({
+            from: "bot",
+            text: "Language switched to English. How can the Butal Ship Hauz crew help you today?"
+        });
+        return;
+    }
+
+    // Fallback: Check if user typed something that matches database node_keys
+    let matched = null;
+    for (const id in nodes.value) {
+        if (nodes.value[id].node_key.toLowerCase().includes(lower) || lower.includes(nodes.value[id].node_key.toLowerCase())) {
+            matched = nodes.value[id];
+            break;
+        }
+    }
+
+    if (matched) {
+        chatMessages.value.push({
+            from: "bot",
+            text: matched.message,
+            images: matched.images || [],
+            dynamic_data: matched.dynamic_data || null
+        });
+        if (matched.options && matched.options.length > 0) {
+            chatMessages.value.push({
+                from: "options",
+                label: matched.node_key,
+                options: matched.options,
+            });
+        }
+    } else {
+        chatMessages.value.push({
+            from: "bot",
+            text: currentLang.value === 'ceb'
+                ? "Pasensya na, wala nako nakuha ang imong gipangutana. Apan mahimo nimong pilion ang mga opsyon sa ubos o direktang tawagan ang among crew:"
+                : "Pasensya na, medyo hindi ko nakuha ang iyong tanong. Maaari kang pumili sa mga opsyon sa ibaba o direktang tawagan ang aming crew:",
+            action_buttons: [
+                { label: "📅 I-check ang Date Availability", custom_action: "date_checker" },
+                { label: "🔍 I-track ang Booking Status", custom_action: "booking_tracker" },
+                { label: "🏠 Bumalik sa Main Menu", custom_action: "main_menu" },
+                { label: "📞 Tawagan ang Hotline", href: "tel:09207139299" },
+            ]
+        });
+    }
+};
 
 function scrollChat() {
     setTimeout(() => {
         const el = document.getElementById("chat-body");
         if (el) el.scrollTop = el.scrollHeight;
-    }, 50);
+    }, 60);
 }
 
 function openChat() {
     chatOpen.value = true;
-
-    // Refresh data tuwing bubuksan ang chat para siguradong latest
     fetchChatbotData(false);
-
     scrollChat();
 }
 </script>
@@ -153,24 +439,25 @@ function openChat() {
         <Transition name="chat-pop">
             <div
                 v-if="chatOpen"
-                class="chat-modal mb-4 w-[340px] max-w-[calc(100vw-48px)] rounded-xl overflow-hidden shadow-2xl flex flex-col font-body border border-sky-200"
+                class="chat-modal mb-4 w-[360px] max-w-[calc(100vw-36px)] rounded-2xl overflow-hidden shadow-2xl flex flex-col font-body border border-sky-200"
                 style="
                     background: #f8fafc;
-                    height: 560px;
-                    max-height: calc(100vh - 130px);
+                    height: 590px;
+                    max-height: calc(100vh - 110px);
                 "
             >
-                <!-- Header -->
-                <div class="flex items-center justify-between px-5 py-4 bg-sky-900 border-b border-sky-800 shrink-0">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center flex-shrink-0 shadow-sm border border-sky-800">
+                <!-- 1. Header -->
+                <div class="flex items-center justify-between px-4 py-3 bg-sky-900 border-b border-sky-800 shrink-0">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 bg-white rounded-full flex items-center justify-center flex-shrink-0 shadow-sm border border-sky-800">
                             <svg class="w-5 h-5 fill-orange-500" viewBox="0 0 24 24">
                                 <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
                             </svg>
                         </div>
                         <div>
-                            <div class="font-display text-white text-base font-bold leading-tight tracking-wide">
+                            <div class="font-display text-white text-sm font-black leading-tight tracking-wide flex items-center gap-1.5">
                                 Ship Hauz Crew
+                                <span class="bg-amber-400/20 text-amber-300 text-[9px] px-1.5 py-0.5 rounded font-mono uppercase font-bold">Talibon</span>
                             </div>
                             <div class="flex items-center gap-1.5 mt-0.5">
                                 <span
@@ -178,42 +465,68 @@ function openChat() {
                                     :class="loading ? 'bg-amber-400' : error ? 'bg-red-400' : 'bg-lime-400'"
                                 ></span>
                                 <span class="font-mono text-sky-200 font-semibold text-[10px] tracking-wider uppercase">
-                                    {{ loading ? 'Connecting...' : error ? 'Offline' : 'Online now' }}
+                                    {{ loading ? 'Connecting...' : error ? 'Offline' : 'Online Assistant' }}
                                 </span>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Header Actions -->
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-1.5">
                         <!-- Restart Chat Button -->
                         <button
                             @click="resetChat"
                             title="Restart Conversation"
-                            class="w-8 h-8 rounded-full hover:bg-white/20 flex items-center justify-center transition-colors duration-150 text-sky-200 hover:text-white"
+                            class="w-7 h-7 rounded-full hover:bg-white/20 flex items-center justify-center transition-colors text-sky-200 hover:text-white"
                         >
-                            <font-awesome-icon icon="fa-solid fa-rotate-right" />
+                            <font-awesome-icon icon="fa-solid fa-rotate-right" class="text-xs" />
                         </button>
                         <!-- Close Button -->
                         <button
                             @click="chatOpen = false"
                             title="Close Chat"
-                            class="w-8 h-8 rounded-full hover:bg-red-500/80 flex items-center justify-center transition-colors duration-150 text-sky-200 hover:text-white"
+                            class="w-7 h-7 rounded-full hover:bg-red-500/80 flex items-center justify-center transition-colors text-sky-200 hover:text-white"
                         >
-                            <font-awesome-icon icon="fa-solid fa-xmark" />
+                            <font-awesome-icon icon="fa-solid fa-xmark" class="text-sm" />
                         </button>
                     </div>
                 </div>
 
-                <!-- Messages -->
+                <!-- 2. Quick Actions & Language Subheader -->
+                <div class="bg-sky-950 px-3.5 py-1.5 flex items-center justify-between border-b border-sky-800 text-[11px] font-bold text-white shrink-0">
+                    <a href="tel:09207139299" class="text-orange-400 hover:text-orange-300 flex items-center gap-1 transition-colors">
+                        <font-awesome-icon icon="fa-solid fa-phone" class="text-[10px]" /> 0920 713 9299
+                    </a>
+                    <div class="flex items-center gap-2">
+                        <a 
+                            href="https://www.google.com/maps/search/?api=1&query=Butal+Ship+Hauz,+Capawan,+Talibon,+Bohol" 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            class="text-sky-300 hover:text-white flex items-center gap-1 transition-colors text-[10px]"
+                            title="Turn-by-Turn GPS to Capawan, Talibon"
+                        >
+                            <font-awesome-icon icon="fa-solid fa-map-location-dot" /> Maps GPS
+                        </a>
+                        <!-- Language toggle button -->
+                        <button 
+                            @click="cycleLanguage" 
+                            class="bg-sky-800 hover:bg-sky-700 text-amber-300 px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider transition-colors"
+                            :title="'Click to switch language: ' + currentLang.toUpperCase()"
+                        >
+                            {{ currentLang === 'tl' ? '🇵🇭 TL' : currentLang === 'ceb' ? '🏝️ CEB' : '🌐 EN' }}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. Messages Body -->
                 <div
                     id="chat-body"
-                    class="flex-1 overflow-y-auto px-5 py-5 space-y-4 relative"
+                    class="flex-1 overflow-y-auto px-4 py-4 space-y-3.5 relative"
                     style="min-height: 0"
                 >
                     <!-- Loading skeleton -->
                     <div v-if="loading" class="flex items-center justify-center h-full">
-                        <div class="text-slate-400 text-sm font-bold animate-pulse">Connecting to crew...</div>
+                        <div class="text-slate-400 text-xs font-bold animate-pulse">Connecting to crew...</div>
                     </div>
 
                     <template v-else v-for="(msg, i) in chatMessages" :key="i">
@@ -222,33 +535,52 @@ function openChat() {
                             v-if="msg.from === 'bot'"
                             class="flex items-end gap-2"
                         >
-                            <!-- Bot Avatar -->
-                            <div class="w-7 h-7 bg-sky-100 rounded-full flex items-center justify-center flex-shrink-0 border border-sky-200">
-                                <svg class="w-4 h-4 fill-orange-500" viewBox="0 0 24 24">
+                            <div class="w-6 h-6 bg-sky-100 rounded-full flex items-center justify-center flex-shrink-0 border border-sky-200">
+                                <svg class="w-3.5 h-3.5 fill-orange-500" viewBox="0 0 24 24">
                                     <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
                                 </svg>
                             </div>
                             
-                            <!-- Bot Content Wrapper -->
-                            <div class="flex flex-col gap-2 max-w-[85%] w-full">
+                            <div class="flex flex-col gap-2 max-w-[88%] w-full">
                                 <!-- Text Bubble -->
                                 <div
-                                    class="chat-bubble-bot w-fit font-body text-slate-700 text-[13.5px] font-medium leading-relaxed px-4 py-2.5 rounded-2xl rounded-bl-sm border border-slate-200 bg-white shadow-sm"
+                                    class="chat-bubble-bot w-fit font-body text-slate-800 text-[13px] font-medium leading-relaxed px-3.5 py-2.5 rounded-2xl rounded-bl-sm border border-slate-200 bg-white shadow-sm"
                                     style="white-space: pre-line;"
                                 >
                                     {{ msg.text }}
                                 </div>
 
-                                <!-- Node Images (Admin configured images for the node) -->
+                                <!-- Node Images -->
                                 <template v-if="msg.images && msg.images.length > 0">
                                     <img 
                                         v-for="(img, idx) in msg.images" 
                                         :key="idx" 
                                         :src="img" 
-                                        class="w-full rounded-xl border border-slate-200 shadow-sm object-cover max-h-48 cursor-pointer hover:opacity-90 transition-opacity" 
-                                        alt="Chatbot Node Image"
+                                        class="w-full rounded-xl border border-slate-200 shadow-sm object-cover max-h-44" 
+                                        alt="Butal Ship Hauz"
                                     />
                                 </template>
+
+                                <!-- Action Buttons attached to Bot Message -->
+                                <div v-if="msg.action_buttons && msg.action_buttons.length > 0" class="flex flex-col gap-1.5 pt-1">
+                                    <template v-for="(btn, bIdx) in msg.action_buttons" :key="bIdx">
+                                        <a 
+                                            v-if="btn.href"
+                                            :href="btn.href"
+                                            :target="btn.external ? '_blank' : '_self'"
+                                            class="w-full text-center font-body font-bold text-[12px] bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white py-2 px-3 rounded-xl shadow-sm transition-all"
+                                        >
+                                            {{ btn.label }}
+                                        </a>
+                                        <button 
+                                            v-else-if="btn.custom_action"
+                                            @click="handleCustomAction(btn.custom_action)"
+                                            class="w-full text-left font-body font-bold text-[12px] text-sky-800 bg-sky-50 border border-sky-200 hover:bg-orange-500 hover:text-white px-3.5 py-2 rounded-xl shadow-sm transition-all"
+                                        >
+                                            {{ btn.label }}
+                                        </button>
+                                    </template>
+                                </div>
 
                                 <!-- Dynamic Data: Event Types -->
                                 <div v-if="msg.dynamic_data && msg.dynamic_data.type === 'event_types'" class="bg-sky-50 border border-sky-100 rounded-xl p-3 shadow-sm w-full">
@@ -260,69 +592,210 @@ function openChat() {
                                     </ul>
                                 </div>
 
-                                <!-- Dynamic Data: Venue Packages & Pricing -->
+                                <!-- Dynamic Data: Venue Packages & Direct Booking Links -->
                                 <div v-if="msg.dynamic_data && msg.dynamic_data.type === 'venue_packages'" class="space-y-3 w-full">
                                     <div v-for="pkg in msg.dynamic_data.items" :key="pkg.id" class="bg-white border border-slate-200 rounded-xl p-3 shadow-sm w-full overflow-hidden">
-                                        
-                                        <!-- Package Image -->
-                                        <div v-if="pkg.image" class="mb-3 -mx-3 -mt-3 border-b border-slate-100">
+                                        <div v-if="pkg.image" class="mb-2.5 -mx-3 -mt-3 border-b border-slate-100">
                                             <img :src="pkg.image" :alt="pkg.title" @error="$event.target.onerror = null; $event.target.src = '/images/venue.jpg'" class="w-full h-28 object-cover" />
                                         </div>
 
-                                        <p class="text-[13px] font-bold text-sky-900 leading-tight mb-0.5">{{ pkg.title }}</p>
-                                        <p class="text-[11px] font-medium text-slate-500 mb-2.5 flex items-center gap-1">
-                                            <font-awesome-icon icon="fa-solid fa-users" class="text-slate-400" />
+                                        <p class="text-[13px] font-black text-sky-900 leading-tight mb-0.5">{{ pkg.title }}</p>
+                                        <p class="text-[11px] font-medium text-slate-500 mb-2 flex items-center gap-1">
+                                            <font-awesome-icon icon="fa-solid fa-users" class="text-slate-400 text-[10px]" />
                                             Up to {{ pkg.guests }} guests
                                         </p>
 
-                                        <div class="grid grid-cols-2 gap-1.5 text-[11px]">
+                                        <div class="grid grid-cols-2 gap-1.5 text-[11px] mb-3">
                                             <div class="bg-slate-50 p-1.5 rounded-lg border border-slate-100 flex flex-col justify-center">
-                                                <span class="text-slate-400 font-bold uppercase text-[9px] tracking-wider mb-0.5">Morning</span>
+                                                <span class="text-slate-400 font-bold uppercase text-[8.5px] tracking-wider">Morning</span>
                                                 <span class="font-bold text-sky-700">{{ fmtPrice(pkg.price_morning || pkg.price * 0.6) }}</span>
                                             </div>
                                             <div class="bg-slate-50 p-1.5 rounded-lg border border-slate-100 flex flex-col justify-center">
-                                                <span class="text-slate-400 font-bold uppercase text-[9px] tracking-wider mb-0.5">Afternoon</span>
+                                                <span class="text-slate-400 font-bold uppercase text-[8.5px] tracking-wider">Afternoon</span>
                                                 <span class="font-bold text-sky-700">{{ fmtPrice(pkg.price_afternoon || pkg.price * 0.6) }}</span>
                                             </div>
                                             <div class="bg-sky-50 p-1.5 rounded-lg border border-sky-100 flex flex-col justify-center">
-                                                <span class="text-sky-600/70 font-bold uppercase text-[9px] tracking-wider mb-0.5">Full Day</span>
+                                                <span class="text-sky-600/70 font-bold uppercase text-[8.5px] tracking-wider">Full Day</span>
                                                 <span class="font-bold text-sky-900">{{ fmtPrice(pkg.price_fullday || pkg.price) }}</span>
                                             </div>
-                                            <div class="bg-amber-50 p-1.5 rounded-lg border border-amber-100 flex flex-col justify-center relative overflow-hidden">
-                                                <div class="absolute top-0 right-0 bg-amber-200 text-amber-800 text-[8px] font-bold px-1 rounded-bl">walk-in</div>
-                                                <span class="text-amber-600/70 font-bold uppercase text-[9px] tracking-wider mb-0.5">Visitor</span>
-                                                <span class="font-bold text-amber-700">{{ fmtPrice(pkg.price_visitor || 150) }}<span class="text-[9px] font-medium text-amber-600/70 ml-0.5">/pax</span></span>
+                                            <div class="bg-amber-50 p-1.5 rounded-lg border border-amber-100 flex flex-col justify-center">
+                                                <span class="text-amber-600/70 font-bold uppercase text-[8.5px] tracking-wider">Visitor Pass</span>
+                                                <span class="font-bold text-amber-700">{{ fmtPrice(pkg.price_visitor || 150) }}<span class="text-[9px] font-medium text-amber-600/70">/pax</span></span>
+                                            </div>
+                                        </div>
+
+                                        <!-- DIRECT BOOKING BUTTONS -->
+                                        <div class="flex items-center gap-1.5">
+                                            <a 
+                                                :href="`/booking?package_id=${pkg.id}&mode=exclusive`"
+                                                class="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-[11px] py-2 px-2.5 rounded-lg text-center transition-all shadow-sm flex items-center justify-center gap-1"
+                                            >
+                                                <font-awesome-icon icon="fa-solid fa-calendar-check" class="text-[10px]" /> I-Book ang Package
+                                            </a>
+                                            <a 
+                                                href="/booking?mode=visitor"
+                                                class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-[11px] py-2 px-2.5 rounded-lg text-center transition-colors border border-amber-200 shrink-0"
+                                                title="Tour / Visitor Pass"
+                                            >
+                                                Tour Pass
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- WIDGET: Live Date Availability Checker -->
+                                <div v-if="msg.custom_widget === 'date_checker'" class="bg-white border border-sky-200 rounded-2xl p-3.5 shadow-md w-full space-y-3">
+                                    <div class="flex items-center gap-2 text-sky-900 font-black text-xs">
+                                        <font-awesome-icon icon="fa-solid fa-calendar-days" class="text-orange-500" />
+                                        <span>Check Date Availability</span>
+                                    </div>
+
+                                    <div class="flex items-center gap-2">
+                                        <input 
+                                            type="date" 
+                                            v-model="dateInputVal"
+                                            class="flex-1 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:ring-1 focus:ring-orange-500 focus:outline-none"
+                                        />
+                                        <button 
+                                            @click="executeDateCheck"
+                                            :disabled="dateCheckLoading"
+                                            class="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold text-xs px-3 py-2 rounded-xl transition-colors shrink-0 shadow-sm"
+                                        >
+                                            {{ dateCheckLoading ? 'Checking...' : 'Check' }}
+                                        </button>
+                                    </div>
+
+                                    <!-- Date Check Result Card -->
+                                    <div v-if="dateCheckResult" class="pt-2 border-t border-slate-100 space-y-2 text-xs">
+                                        <div class="font-bold text-slate-800">{{ dateCheckResult.formatted_date }}</div>
+                                        
+                                        <!-- Availability status banner -->
+                                        <div 
+                                            v-if="dateCheckResult.is_past"
+                                            class="bg-red-50 text-red-700 border border-red-200 rounded-xl p-2.5 font-medium leading-tight"
+                                        >
+                                            ⚠️ {{ dateCheckResult.message }}
+                                        </div>
+                                        <div 
+                                            v-else-if="dateCheckResult.fullday_taken"
+                                            class="bg-amber-50 text-amber-900 border border-amber-200 rounded-xl p-2.5 font-medium leading-tight"
+                                        >
+                                            🔒 Exclusive reserved for whole day. <strong>Walk-in Visitor Passes (₱150/pax) are still welcome!</strong>
+                                        </div>
+                                        <div 
+                                            v-else-if="dateCheckResult.morning_taken || dateCheckResult.afternoon_taken"
+                                            class="bg-amber-50 text-amber-800 border border-amber-200 rounded-xl p-2.5 font-medium leading-tight"
+                                        >
+                                            ⚡ {{ dateCheckResult.message }}
+                                        </div>
+                                        <div 
+                                            v-else
+                                            class="bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl p-2.5 font-medium leading-tight"
+                                        >
+                                            ✅ <strong>Fully Available!</strong> Puwede kayong magpareserba ng Exclusive Event o Visitor Tour Pass para sa petsang ito.
+                                        </div>
+
+                                        <a 
+                                            v-if="!dateCheckResult.is_past"
+                                            :href="`/booking?date=${dateCheckResult.date}`"
+                                            class="block w-full text-center bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black py-2 rounded-xl shadow-sm transition-all"
+                                        >
+                                            Mag-Book para sa Petsang Ito
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <!-- WIDGET: Booking Reference Tracker -->
+                                <div v-if="msg.custom_widget === 'booking_tracker'" class="bg-white border border-sky-200 rounded-2xl p-3.5 shadow-md w-full space-y-3">
+                                    <div class="flex items-center gap-2 text-sky-900 font-black text-xs">
+                                        <font-awesome-icon icon="fa-solid fa-magnifying-glass" class="text-orange-500" />
+                                        <span>Track Booking Status</span>
+                                    </div>
+
+                                    <div class="flex items-center gap-2">
+                                        <input 
+                                            type="text" 
+                                            v-model="trackInputVal"
+                                            placeholder="e.g. BSH-8A1C5F2B o Cell #"
+                                            class="flex-1 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:ring-1 focus:ring-orange-500 focus:outline-none"
+                                            @keyup.enter="executeTrackBooking"
+                                        />
+                                        <button 
+                                            @click="executeTrackBooking"
+                                            :disabled="trackLoading"
+                                            class="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold text-xs px-3 py-2 rounded-xl transition-colors shrink-0 shadow-sm"
+                                        >
+                                            {{ trackLoading ? '...' : 'Hanapin' }}
+                                        </button>
+                                    </div>
+
+                                    <!-- Tracking Result Card -->
+                                    <div v-if="trackResult" class="pt-2 border-t border-slate-100 text-xs">
+                                        <div v-if="!trackResult.found" class="bg-red-50 text-red-700 border border-red-200 rounded-xl p-2.5 font-medium leading-tight">
+                                            {{ trackResult.message }}
+                                        </div>
+                                        <div v-else class="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+                                            <div class="flex items-center justify-between">
+                                                <span class="font-mono text-[10px] font-bold text-slate-400 uppercase">Ref #</span>
+                                                <span class="font-mono text-xs font-black text-sky-900">{{ trackResult.booking_ref }}</span>
+                                            </div>
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-slate-500">Customer:</span>
+                                                <span class="font-bold text-slate-800">{{ trackResult.guest_name }}</span>
+                                            </div>
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-slate-500">Event / Package:</span>
+                                                <span class="font-bold text-slate-800">{{ trackResult.event_type }} ({{ trackResult.package_title }})</span>
+                                            </div>
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-slate-500">Petsa & Oras:</span>
+                                                <span class="font-bold text-slate-800">{{ trackResult.date }} ({{ trackResult.time_slot }})</span>
+                                            </div>
+                                            <div class="flex items-center justify-between pt-1 border-t border-slate-200">
+                                                <span class="text-slate-500 font-bold">Status:</span>
+                                                <span 
+                                                    class="font-black uppercase text-[10px] px-2.5 py-0.5 rounded-full"
+                                                    :class="{
+                                                        'bg-emerald-100 text-emerald-800': trackResult.status === 'confirmed',
+                                                        'bg-amber-100 text-amber-800': trackResult.status === 'pending',
+                                                        'bg-blue-100 text-blue-800': trackResult.status === 'completed',
+                                                        'bg-red-100 text-red-800': trackResult.status === 'cancelled',
+                                                    }"
+                                                >
+                                                    {{ trackResult.status }}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
+
                             </div>
                         </div>
 
                         <!-- User message -->
                         <div v-else-if="msg.from === 'user'" class="flex justify-end">
-                            <div class="font-body text-white font-medium text-[13.5px] leading-relaxed px-4 py-2.5 rounded-2xl rounded-br-sm max-w-[85%] bg-sky-600 shadow-sm shadow-sky-600/20">
+                            <div class="font-body text-white font-semibold text-[13px] leading-relaxed px-3.5 py-2 rounded-2xl rounded-br-sm max-w-[85%] bg-sky-600 shadow-sm shadow-sky-600/20">
                                 {{ msg.text }}
                             </div>
                         </div>
 
-                        <!-- Options -->
-                        <div v-else-if="msg.from === 'options'" class="pl-9 pr-2">
+                        <!-- Options Menu -->
+                        <div v-else-if="msg.from === 'options'" class="pl-8 pr-1">
                             <p
                                 v-if="i === chatMessages.length - 1"
-                                class="font-mono text-slate-400 font-bold text-[10px] tracking-wider uppercase mb-2 ml-1"
+                                class="font-mono text-slate-400 font-bold text-[9.5px] tracking-wider uppercase mb-1.5 ml-1"
                             >
                                 {{ msg.label }}
                             </p>
                             <div
                                 v-if="i === chatMessages.length - 1"
-                                class="flex flex-col gap-2"
+                                class="flex flex-col gap-1.5"
                             >
                                 <button
                                     v-for="opt in msg.options"
                                     :key="opt.label"
                                     @click="handleOption(opt)"
-                                    class="chat-option-btn text-left font-body font-bold text-[12.5px] text-sky-800 bg-sky-50 border border-sky-200 hover:bg-orange-500 hover:text-white hover:border-orange-500 px-4 py-2.5 rounded-xl transition-colors duration-200 shadow-sm"
+                                    class="chat-option-btn text-left font-body font-bold text-[12px] text-sky-800 bg-sky-50 border border-sky-200 hover:bg-orange-500 hover:text-white hover:border-orange-500 px-3.5 py-2 rounded-xl transition-colors duration-150 shadow-sm"
                                 >
                                     {{ opt.label }}
                                 </button>
@@ -332,12 +805,12 @@ function openChat() {
 
                     <!-- Typing indicator -->
                     <div v-if="chatTyping" class="flex items-end gap-2">
-                        <div class="w-7 h-7 bg-sky-100 rounded-full flex items-center justify-center flex-shrink-0 border border-sky-200">
-                            <svg class="w-4 h-4 fill-orange-500" viewBox="0 0 24 24">
+                        <div class="w-6 h-6 bg-sky-100 rounded-full flex items-center justify-center flex-shrink-0 border border-sky-200">
+                            <svg class="w-3.5 h-3.5 fill-orange-500" viewBox="0 0 24 24">
                                 <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
                             </svg>
                         </div>
-                        <div class="px-4 py-3.5 rounded-2xl rounded-bl-sm border border-slate-200 bg-white shadow-sm">
+                        <div class="px-3.5 py-3 rounded-2xl rounded-bl-sm border border-slate-200 bg-white shadow-sm">
                             <div class="typing-dots flex gap-1.5 items-center">
                                 <span></span><span></span><span></span>
                             </div>
@@ -345,11 +818,24 @@ function openChat() {
                     </div>
                 </div>
 
-                <!-- Footer hint -->
-                <div class="px-5 py-3 border-t bg-slate-100 border-slate-200 shrink-0">
-                    <p class="font-mono text-slate-400 font-semibold text-[10px] tracking-wider uppercase text-center">
-                        Select an option above to continue
-                    </p>
+                <!-- 4. Interactive Smart Text Input Bar -->
+                <div class="p-2.5 bg-white border-t border-slate-200 shrink-0">
+                    <form @submit.prevent="handleUserTextSubmit" class="flex items-center gap-1.5">
+                        <input
+                            v-model="userInputText"
+                            type="text"
+                            placeholder="Magtanong o mag-type dito..."
+                            class="flex-1 bg-slate-50 border border-slate-200 focus:bg-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none transition-all"
+                        />
+                        <button
+                            type="submit"
+                            :disabled="!userInputText.trim()"
+                            class="w-8 h-8 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-orange-500 text-white flex items-center justify-center transition-colors shadow-sm shrink-0"
+                            title="Send message"
+                        >
+                            <font-awesome-icon icon="fa-solid fa-paper-plane" class="text-xs" />
+                        </button>
+                    </form>
                 </div>
             </div>
         </Transition>
@@ -380,10 +866,10 @@ function openChat() {
             </Transition>
         </button>
 
-        <!-- Notification dot (shows when closed) -->
+        <!-- Notification dot -->
         <span
             v-if="!chatOpen"
-            class="absolute top-0 right-0 w-3.5 h-3.5 bg-lime-500 border-2 border-white rounded-full"
+            class="absolute top-0 right-0 w-3.5 h-3.5 bg-lime-500 border-2 border-white rounded-full animate-pulse"
         ></span>
     </div>
 </template>
@@ -421,7 +907,7 @@ function openChat() {
     display: inline-block;
     width: 6px;
     height: 6px;
-    background: #0ea5e9; /* sky-500 */
+    background: #0ea5e9;
     border-radius: 50%;
     animation: typingbounce 1.2s ease-in-out infinite;
 }

@@ -141,6 +141,8 @@ Route::middleware('auth')->group(function () {
 
 Route::get('/api/chatbot', [ChatBotController::class, 'index'])->name('chatbot.index');
 Route::get('/api/chatbot/nodes', [ChatBotController::class, 'nodes'])->name('chatbot.nodes');
+Route::get('/api/chatbot/check-date', [ChatBotController::class, 'checkDate'])->name('chatbot.check-date');
+Route::get('/api/chatbot/track-booking', [ChatBotController::class, 'trackBooking'])->name('chatbot.track-booking');
 
 // Fallback route para sa /storage files upang maiwasan ang 404 kung hindi naka-link o nawawala ang uploaded files
 Route::get('/storage/{path}', function ($path) {
