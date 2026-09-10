@@ -839,14 +839,14 @@ const submitFeedback = () => {
 
         <!-- ── DECK INCLUSIONS & RATES MODAL ── -->
         <Modal :show="showDeckModal" @close="closeDeckModal" max-width="2xl">
-            <div v-if="activeDeck" class="p-6 sm:p-8 space-y-6">
-                <!-- Modal Header -->
-                <div class="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
+            <div v-if="activeDeck" class="flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3.5rem)]">
+                <!-- Modal Header (Fixed) -->
+                <div class="flex items-start justify-between gap-4 p-5 sm:p-6 pb-4 border-b border-slate-100 shrink-0 bg-white">
                     <div class="space-y-1">
                         <span class="px-2.5 py-0.5 rounded-md bg-sky-50 text-sky-800 font-mono text-[10px] font-bold uppercase tracking-wider border border-sky-100">
                             {{ activeDeck.tag }}
                         </span>
-                        <h3 class="font-display font-black text-2xl text-sky-950">
+                        <h3 class="font-display font-black text-xl sm:text-2xl text-sky-950">
                             {{ activeDeck.title }}
                         </h3>
                         <p class="text-xs text-slate-500">
@@ -855,62 +855,65 @@ const submitFeedback = () => {
                     </div>
                     <button
                         @click="closeDeckModal"
-                        class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors"
+                        class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer shrink-0"
                     >
                         <font-awesome-icon icon="fa-solid fa-xmark" />
                     </button>
                 </div>
 
-                <!-- Available Events Breakdown -->
-                <div class="space-y-3">
-                    <h4 class="font-mono text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                        <font-awesome-icon icon="fa-solid fa-cake-candles" class="text-orange-500" />
-                        Available Event Packages & Shift Rates
-                    </h4>
-                    <div class="space-y-2">
-                        <div
-                            v-for="(ev, idx) in activeDeck.availableEvents"
-                            :key="idx"
-                            class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
-                        >
-                            <div>
-                                <p class="font-bold text-sm text-sky-950">{{ ev.name }}</p>
-                                <p class="text-[11px] text-slate-500 font-medium">Standard reservation rate</p>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="font-display font-black text-base text-orange-600">
-                                    ₱{{ Number(ev.price || activeDeck.price).toLocaleString("en-PH") }}
-                                </span>
-                                <Link
-                                    :href="route('client.booking.index', { venue_id: ev.id || activeDeck.id })"
-                                    class="px-3 py-1 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition-colors"
-                                >
-                                    Select
-                                </Link>
+                <!-- Scrollable Content -->
+                <div class="p-5 sm:p-6 space-y-5 overflow-y-auto flex-1 overscroll-contain">
+                    <!-- Available Events Breakdown -->
+                    <div class="space-y-3">
+                        <h4 class="font-mono text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                            <font-awesome-icon icon="fa-solid fa-cake-candles" class="text-orange-500" />
+                            Available Event Packages & Shift Rates
+                        </h4>
+                        <div class="space-y-2">
+                            <div
+                                v-for="(ev, idx) in activeDeck.availableEvents"
+                                :key="idx"
+                                class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                            >
+                                <div>
+                                    <p class="font-bold text-sm text-sky-950">{{ ev.name }}</p>
+                                    <p class="text-[11px] text-slate-500 font-medium">Standard reservation rate</p>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="font-display font-black text-base text-orange-600">
+                                        ₱{{ Number(ev.price || activeDeck.price).toLocaleString("en-PH") }}
+                                    </span>
+                                    <Link
+                                        :href="route('client.booking.index', { venue_id: ev.id || activeDeck.id })"
+                                        class="px-3 py-1 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition-colors"
+                                    >
+                                        Select
+                                    </Link>
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Deck Inclusions -->
+                    <div class="space-y-3">
+                        <h4 class="font-mono text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                            <font-awesome-icon icon="fa-solid fa-circle-check" class="text-emerald-500" />
+                            Deck Amenities & Inclusions
+                        </h4>
+                        <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-600">
+                            <li v-for="(inc, idx) in activeDeck.inclusions" :key="idx" class="flex items-start gap-2">
+                                <font-awesome-icon icon="fa-solid fa-check" class="text-emerald-500 mt-0.5 text-[10px]" />
+                                <span>{{ inc }}</span>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
 
-                <!-- Deck Inclusions -->
-                <div class="space-y-3">
-                    <h4 class="font-mono text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                        <font-awesome-icon icon="fa-solid fa-circle-check" class="text-emerald-500" />
-                        Deck Amenities & Inclusions
-                    </h4>
-                    <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-600">
-                        <li v-for="(inc, idx) in activeDeck.inclusions" :key="idx" class="flex items-start gap-2">
-                            <font-awesome-icon icon="fa-solid fa-check" class="text-emerald-500 mt-0.5 text-[10px]" />
-                            <span>{{ inc }}</span>
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- Modal Footer -->
-                <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                <!-- Modal Footer (Fixed) -->
+                <div class="p-4 sm:p-5 border-t border-slate-100 bg-slate-50/80 flex items-center justify-end gap-3 shrink-0">
                     <button
                         @click="closeDeckModal"
-                        class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors"
+                        class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-100 transition-colors cursor-pointer"
                     >
                         Close
                     </button>
@@ -926,7 +929,7 @@ const submitFeedback = () => {
 
         <!-- ── DIGITAL E-RECEIPT / BOARDING VOUCHER MODAL ── -->
         <Modal :show="showReceiptModal" @close="closeReceiptModal" max-width="2xl">
-            <div v-if="activeReceiptBooking" class="p-4 sm:p-8 space-y-4 sm:space-y-6 max-h-[85vh] overflow-y-auto print:p-0 print:max-h-none">
+            <div v-if="activeReceiptBooking" class="p-4 sm:p-8 space-y-4 sm:space-y-6 max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)] overflow-y-auto print:p-0 print:max-h-none">
                 <!-- Receipt Header (Nautical Ticket Style) -->
                 <div class="flex items-start justify-between border-b-2 border-dashed border-slate-200 pb-4 sm:pb-5">
                     <div class="space-y-1">
@@ -1050,7 +1053,7 @@ const submitFeedback = () => {
 
         <!-- ── VENUE PERFORMANCE & FEEDBACK MODAL ── -->
         <Modal :show="showFeedbackModal" @close="closeFeedbackModal" max-width="lg">
-            <div v-if="activeFeedbackBooking" class="p-4 sm:p-8 space-y-4 sm:space-y-6 max-h-[85vh] overflow-y-auto">
+            <div v-if="activeFeedbackBooking" class="p-4 sm:p-8 space-y-4 sm:space-y-6 max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)] overflow-y-auto">
                 <!-- Modal Header -->
                 <div class="flex items-start justify-between border-b border-slate-100 pb-4">
                     <div>

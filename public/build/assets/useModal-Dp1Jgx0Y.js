@@ -1,0 +1,1 @@
+import{P as e}from"./app-hCL95D2u.js";function t(){let t=e(!1),n=e(``),r=e(``);return{open:t,title:n,type:r,icon:e(``),openModal:()=>{t.value=!0},closeModal:()=>{t.value=!1,n.value=``,r.value=``}}}export{t};

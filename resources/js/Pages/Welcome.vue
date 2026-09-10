@@ -1513,72 +1513,72 @@ const socials = ref([
         <!-- 11. VENUE INCLUSIONS & DETAILS MODAL                   -->
         <!-- ══════════════════════════════════════════════════════ -->
         <Modal :show="showVenueModal" max-width="3xl" @close="closeVenueModal">
-            <div v-if="selectedVenue" class="bg-white overflow-hidden rounded-3xl">
-                <!-- Modal Top Banner -->
-                <div class="relative h-64 sm:h-80 w-full bg-slate-900">
+            <div v-if="selectedVenue" class="bg-white flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3.5rem)]">
+                <!-- Modal Top Banner (Fixed Header) -->
+                <div class="relative h-48 sm:h-64 w-full bg-slate-900 shrink-0">
                     <img 
                         :src="resolveImageUrl(selectedVenue.image, '/images/venue.jpg')" 
                         :alt="selectedVenue.title" 
                         @error="handleImageError($event, '/images/venue.jpg')"
                         class="w-full h-full object-cover" 
                     />
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent"></div>
 
                     <button 
                         @click="closeVenueModal" 
-                        class="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-colors shadow-md backdrop-blur-sm"
+                        class="absolute top-3 right-3 sm:top-4 sm:right-4 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-colors shadow-md backdrop-blur-sm cursor-pointer"
                         aria-label="Close modal"
                     >
-                        <font-awesome-icon icon="fa-solid fa-xmark" class="text-lg" />
+                        <font-awesome-icon icon="fa-solid fa-xmark" class="text-base sm:text-lg" />
                     </button>
 
-                    <div class="absolute bottom-6 left-6 right-6 text-white">
-                        <span class="bg-orange-500 text-white font-mono text-[10px] font-bold px-3 py-1 rounded-md uppercase tracking-wider mb-2 inline-block shadow">
+                    <div class="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 text-white">
+                        <span class="bg-orange-500 text-white font-mono text-[10px] font-bold px-2.5 py-0.5 rounded uppercase tracking-wider mb-1.5 inline-block shadow">
                             {{ selectedVenue.tag }}
                         </span>
-                        <h2 class="font-display font-black text-2xl sm:text-4xl text-white drop-shadow-md">
+                        <h2 class="font-display font-black text-xl sm:text-3xl text-white drop-shadow-md">
                             {{ selectedVenue.title }}
                         </h2>
                     </div>
                 </div>
 
-                <!-- Modal Content -->
-                <div class="p-6 sm:p-8 space-y-6">
+                <!-- Modal Content (Scrollable) -->
+                <div class="p-4 sm:p-7 space-y-5 overflow-y-auto flex-1 overscroll-contain">
                     <!-- Quick Info Bar -->
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs">
                         <div>
                             <span class="font-mono text-[10px] uppercase font-bold text-slate-500 block">Starting Rate</span>
-                            <strong class="font-display text-xl font-black text-orange-600">₱{{ Number(selectedVenue.price).toLocaleString() }}</strong>
+                            <strong class="font-display text-lg sm:text-xl font-black text-orange-600">₱{{ Number(selectedVenue.price).toLocaleString() }}</strong>
                         </div>
                         <div>
                             <span class="font-mono text-[10px] uppercase font-bold text-slate-500 block">Capacity</span>
-                            <strong class="font-display text-xl font-black text-slate-900">Up to {{ selectedVenue.guests }} Guests</strong>
+                            <strong class="font-display text-lg sm:text-xl font-black text-slate-900">Up to {{ selectedVenue.guests }} Guests</strong>
                         </div>
                         <div class="col-span-2 sm:col-span-1">
                             <span class="font-mono text-[10px] uppercase font-bold text-slate-500 block">Seating Config</span>
-                            <strong class="text-slate-800 font-bold text-xs block leading-tight mt-1">{{ selectedVenue.seating || 'Banquet & Theater' }}</strong>
+                            <strong class="text-slate-800 font-bold text-xs block leading-tight mt-0.5">{{ selectedVenue.seating || 'Banquet & Theater' }}</strong>
                         </div>
                     </div>
 
                     <!-- Description -->
                     <div>
-                        <h3 class="font-mono text-xs uppercase tracking-wider font-bold text-slate-700 mb-2">Space Overview</h3>
-                        <p class="font-body text-slate-700 text-sm leading-relaxed font-medium">
+                        <h3 class="font-mono text-xs uppercase tracking-wider font-bold text-slate-700 mb-1.5">Space Overview</h3>
+                        <p class="font-body text-slate-700 text-xs sm:text-sm leading-relaxed font-medium">
                             {{ selectedVenue.description }}
                         </p>
                     </div>
 
                     <!-- Available Events & Rates Breakdown -->
-                    <div v-if="selectedVenue.availableEvents && selectedVenue.availableEvents.length" class="space-y-2.5">
+                    <div v-if="selectedVenue.availableEvents && selectedVenue.availableEvents.length" class="space-y-2">
                         <h3 class="font-mono text-xs uppercase tracking-wider font-bold text-slate-700">Available Event Occasions for this Deck</h3>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <div 
                                 v-for="evt in selectedVenue.availableEvents" 
                                 :key="evt.id"
-                                class="flex items-center justify-between bg-orange-50/70 border border-orange-200/80 px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-900 shadow-2xs"
+                                class="flex items-center justify-between bg-orange-50/70 border border-orange-200/80 px-3 py-2 rounded-xl text-xs font-bold text-slate-900 shadow-2xs"
                             >
-                                <span class="flex items-center gap-2">
-                                    <span class="text-base">🎉</span>
+                                <span class="flex items-center gap-1.5">
+                                    <span class="text-sm">🎉</span>
                                     <span>{{ evt.name }}</span>
                                 </span>
                                 <span v-if="evt.price" class="text-orange-600 font-mono">
@@ -1590,25 +1590,25 @@ const socials = ref([
 
                     <!-- Inclusions List -->
                     <div>
-                        <h3 class="font-mono text-xs uppercase tracking-wider font-bold text-slate-700 mb-3">Package Inclusions</h3>
-                        <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs text-slate-800">
+                        <h3 class="font-mono text-xs uppercase tracking-wider font-bold text-slate-700 mb-2">Package Inclusions</h3>
+                        <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-800">
                             <li 
                                 v-for="inc in (selectedVenue.inclusions || ['Full Sound System', 'Tables & Chairs', 'Backup Power', 'Dressing Room'])" 
                                 :key="inc"
                                 class="flex items-center gap-2 bg-emerald-50 text-emerald-900 border border-emerald-200 px-3 py-2 rounded-xl font-semibold"
                             >
-                                <font-awesome-icon icon="fa-solid fa-check" class="text-emerald-600 flex-shrink-0" />
+                                <font-awesome-icon icon="fa-solid fa-check" class="text-emerald-600 flex-shrink-0 text-xs" />
                                 <span>{{ inc }}</span>
                             </li>
                         </ul>
                     </div>
                 </div>
 
-                <!-- Modal Actions -->
-                <div class="p-6 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <!-- Modal Actions (Fixed Footer) -->
+                <div class="p-4 sm:p-5 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
                     <button 
                         @click="closeVenueModal" 
-                        class="w-full sm:w-auto px-6 py-3 border border-slate-300 hover:bg-slate-100 text-slate-800 font-bold rounded-xl text-sm transition-colors"
+                        class="w-full sm:w-auto px-5 py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-800 font-bold rounded-xl text-xs sm:text-sm transition-colors cursor-pointer"
                     >
                         Close Preview
                     </button>
@@ -1616,14 +1616,14 @@ const socials = ref([
                     <Link 
                         v-if="$page.props.auth.user && $page.props.auth.user.role === 'client'"
                         :href="route('client.booking.index', { venue_id: selectedVenue.id })"
-                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm px-8 py-3 rounded-xl transition-all shadow-md shadow-orange-500/20"
+                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs sm:text-sm px-6 py-2.5 sm:px-8 sm:py-3 rounded-xl transition-all shadow-md shadow-orange-500/20"
                     >
                         <font-awesome-icon icon="fa-solid fa-calendar-check" /> Proceed to Book This Deck
                     </Link>
                     <Link 
                         v-else
                         :href="route('register')"
-                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm px-8 py-3 rounded-xl transition-all shadow-md shadow-orange-500/20"
+                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs sm:text-sm px-6 py-2.5 sm:px-8 sm:py-3 rounded-xl transition-all shadow-md shadow-orange-500/20"
                     >
                         <font-awesome-icon icon="fa-solid fa-user-plus" /> Sign Up & Reserve Date
                     </Link>

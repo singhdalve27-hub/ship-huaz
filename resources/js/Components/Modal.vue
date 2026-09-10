@@ -70,19 +70,26 @@ const maxWidthClass = computed(() => {
         lg: 'sm:max-w-lg',
         xl: 'sm:max-w-xl',
         '2xl': 'sm:max-w-2xl',
-    }[props.maxWidth];
+        '3xl': 'sm:max-w-3xl',
+        '4xl': 'sm:max-w-4xl',
+        '5xl': 'sm:max-w-5xl',
+        full: 'sm:max-w-full',
+    }[props.maxWidth] || 'sm:max-w-2xl';
 });
 </script>
 
 <template>
     <dialog
-        class="z-50 m-0 min-h-full min-w-full overflow-y-auto bg-transparent backdrop:bg-transparent font-body"
+        class="z-50 m-0 p-0 h-full w-full max-h-none max-w-none border-none bg-transparent backdrop:bg-transparent outline-none overflow-hidden font-body"
         ref="dialog"
+        @cancel.prevent="close"
     >
+        <!-- Outer scroll container: allows full vertical scrolling if modal exceeds viewport -->
         <div
-            class="fixed inset-0 z-50 flex min-h-full items-center justify-center px-4 py-6 sm:px-0"
+            class="fixed inset-0 z-50 overflow-y-auto overscroll-y-contain"
             scroll-region
         >
+            <!-- Backdrop -->
             <Transition
                 enter-active-class="ease-out duration-300"
                 enter-from-class="opacity-0"
@@ -93,31 +100,35 @@ const maxWidthClass = computed(() => {
             >
                 <div
                     v-show="show"
-                    class="fixed inset-0 transform transition-all"
+                    class="fixed inset-0 bg-sky-950/75 backdrop-blur-sm transition-opacity"
+                    aria-hidden="true"
                     @click="close"
-                >
-                    <div
-                        class="absolute inset-0 bg-sky-950/75 backdrop-blur-sm"
-                    />
-                </div>
+                />
             </Transition>
 
-            <Transition
-                enter-active-class="ease-out duration-300"
-                enter-from-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                enter-to-class="opacity-100 translate-y-0 sm:scale-100"
-                leave-active-class="ease-in duration-200"
-                leave-from-class="opacity-100 translate-y-0 sm:scale-100"
-                leave-to-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            <!-- Positioning wrapper: min-h-full flex justify-center with padding -->
+            <div
+                class="flex min-h-full justify-center p-3 sm:p-6 text-left"
+                @click.self="close"
             >
-                <div
-                    v-show="show"
-                    class="mb-6 transform overflow-hidden rounded-xl bg-white shadow-2xl shadow-sky-900/40 border border-sky-100 transition-all sm:mx-auto sm:w-full"
-                    :class="maxWidthClass"
+                <!-- Modal Card -->
+                <Transition
+                    enter-active-class="ease-out duration-300"
+                    enter-from-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                    enter-to-class="opacity-100 translate-y-0 sm:scale-100"
+                    leave-active-class="ease-in duration-200"
+                    leave-from-class="opacity-100 translate-y-0 sm:scale-100"
+                    leave-to-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                 >
-                    <slot v-if="showSlot" />
-                </div>
-            </Transition>
+                    <div
+                        v-show="show"
+                        class="relative my-auto w-full transform rounded-2xl bg-white shadow-2xl shadow-sky-900/40 border border-sky-100 transition-all overflow-hidden"
+                        :class="maxWidthClass"
+                    >
+                        <slot v-if="showSlot" />
+                    </div>
+                </Transition>
+            </div>
         </div>
     </dialog>
 </template>
