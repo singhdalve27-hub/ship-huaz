@@ -97,15 +97,15 @@ const { formatDate, formatAmount } = useFormatter();
     <Head title="Passenger Profile & Stateroom | Butal Ship Hauz" />
 
     <AuthenticatedLayout>
-        <div class="space-y-8">
+        <div class="space-y-6 sm:space-y-8">
             <!-- ── PAGE HEADER ── -->
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                 <div>
                     <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 border border-sky-100 text-[10px] font-mono font-bold tracking-widest uppercase text-sky-800 mb-1.5">
                         <font-awesome-icon icon="fa-solid fa-id-card-clip" class="text-orange-500" />
                         <span>Passenger Credentials • Stateroom Pass</span>
                     </div>
-                    <h1 class="font-display text-2xl sm:text-3xl font-black text-sky-950">
+                    <h1 class="font-display text-xl sm:text-3xl font-black text-sky-950">
                         Passenger Profile & Stateroom
                     </h1>
                     <p class="text-xs sm:text-sm font-medium text-slate-500 mt-1">
@@ -114,33 +114,33 @@ const { formatDate, formatAmount } = useFormatter();
                 </div>
             </div>
 
-            <div class="flex flex-col lg:flex-row gap-8">
+            <div class="flex flex-col lg:flex-row gap-6 sm:gap-8">
                 <!-- Left Column: Booking History (Table) -->
                 <div class="w-full lg:w-[60%] xl:w-[62%]">
-                    <div class="bg-white rounded-3xl shadow-sm border border-slate-200/90 overflow-hidden flex flex-col h-full">
-                        <div class="p-6 sm:p-8 flex-1 flex flex-col space-y-6">
+                    <div class="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/90 overflow-hidden flex flex-col h-full">
+                        <div class="p-4 sm:p-8 flex-1 flex flex-col space-y-4 sm:space-y-6">
                             <!-- Header -->
-                            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-4">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center">
-                                        <font-awesome-icon icon="fa-solid fa-clock-rotate-left" class="text-orange-500" />
+                                    <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0">
+                                        <font-awesome-icon icon="fa-solid fa-clock-rotate-left" class="text-orange-500 text-sm sm:text-base" />
                                     </div>
                                     <div>
-                                        <h2 class="font-display text-xl font-bold text-sky-950">
+                                        <h2 class="font-display text-lg sm:text-xl font-bold text-sky-950">
                                             Voyage Booking History
                                         </h2>
-                                        <p class="text-xs text-slate-400 font-mono">
+                                        <p class="text-[11px] sm:text-xs text-slate-400 font-mono">
                                             All current and historical reservations
                                         </p>
                                     </div>
                                 </div>
-                                <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-mono font-bold">
+                                <span class="px-2.5 sm:px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-[10px] sm:text-xs font-mono font-bold">
                                     {{ tableData.length }} records
                                 </span>
                             </div>
 
                             <!-- Table -->
-                            <div class="flex-1 min-h-[350px]">
+                            <div class="flex-1 min-h-[300px] sm:min-h-[350px]">
                                 <Table :data="tableData" :columns="TableColumns">
                                     <template #ref="{ value }">
                                         <span class="font-mono text-xs text-sky-900 font-bold bg-sky-50 px-2 py-0.5 rounded border border-sky-100">
@@ -194,7 +194,7 @@ const { formatDate, formatAmount } = useFormatter();
                 <!-- Right Column: Passenger Stateroom Pass & Account Forms -->
                 <div class="w-full lg:w-[40%] xl:w-[38%] flex flex-col gap-6">
                     <!-- Luxury Passenger Stateroom Pass Card -->
-                    <div class="rounded-3xl bg-gradient-to-br from-sky-950 via-sky-900 to-slate-900 text-white p-6 shadow-xl border border-sky-800/60 relative overflow-hidden">
+                    <div class="rounded-2xl sm:rounded-3xl bg-gradient-to-br from-sky-950 via-sky-900 to-slate-900 text-white p-5 sm:p-6 shadow-xl border border-sky-800/60 relative overflow-hidden">
                         <!-- Watermark Anchor -->
                         <div class="absolute -right-6 -bottom-6 opacity-10 pointer-events-none">
                             <font-awesome-icon icon="fa-solid fa-anchor" class="text-9xl text-white" />
@@ -213,24 +213,24 @@ const { formatDate, formatAmount } = useFormatter();
                                 </span>
                             </div>
 
-                            <div class="flex items-center gap-4">
-                                <div class="relative">
+                            <div class="flex items-center gap-3.5 sm:gap-4">
+                                <div class="relative shrink-0">
                                     <img
                                         v-if="user.profile_photo"
                                         :src="'/storage/' + user.profile_photo"
                                         alt="Profile"
-                                        class="w-14 h-14 rounded-2xl object-cover border-2 border-orange-400 shadow-md"
+                                        class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-cover border-2 border-orange-400 shadow-md"
                                     />
                                     <div
                                         v-else
-                                        class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 text-white flex items-center justify-center font-bold text-xl shadow-md"
+                                        class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 text-white flex items-center justify-center font-bold text-lg sm:text-xl shadow-md"
                                     >
                                         {{ user.name ? user.name.charAt(0).toUpperCase() : 'P' }}
                                     </div>
                                 </div>
 
                                 <div class="min-w-0 flex-1">
-                                    <h3 class="font-display font-black text-xl text-white truncate">
+                                    <h3 class="font-display font-black text-lg sm:text-xl text-white truncate">
                                         {{ user.name }}
                                     </h3>
                                     <p class="text-xs text-sky-200 truncate font-mono">
@@ -247,13 +247,13 @@ const { formatDate, formatAmount } = useFormatter();
                     </div>
 
                     <!-- Personal Information Form -->
-                    <div class="overflow-hidden bg-white shadow-sm border border-slate-200/90 rounded-3xl p-6 sm:p-8">
-                        <div class="flex items-center gap-3 border-b border-slate-100 pb-4 mb-6">
-                            <div class="w-9 h-9 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center">
+                    <div class="overflow-hidden bg-white shadow-sm border border-slate-200/90 rounded-2xl sm:rounded-3xl p-4 sm:p-8">
+                        <div class="flex items-center gap-3 border-b border-slate-100 pb-4 mb-5 sm:mb-6">
+                            <div class="w-9 h-9 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center shrink-0">
                                 <font-awesome-icon icon="fa-solid fa-user" />
                             </div>
                             <div>
-                                <h3 class="font-display text-lg font-bold text-sky-950">
+                                <h3 class="font-display text-base sm:text-lg font-bold text-sky-950">
                                     Personal Details
                                 </h3>
                                 <p class="text-xs text-slate-400 font-mono">Passenger registry profile</p>
@@ -331,7 +331,7 @@ const { formatDate, formatAmount } = useFormatter();
                             <div class="pt-3 border-t border-slate-100 flex items-center justify-end">
                                 <button
                                     type="submit"
-                                    class="bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-sm shadow-orange-500/20 transition-all flex items-center gap-2"
+                                    class="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-sm shadow-orange-500/20 transition-all flex items-center justify-center gap-2"
                                     :disabled="user_information.processing"
                                 >
                                     <font-awesome-icon v-if="user_information.processing" icon="fa-solid fa-spinner" spin />
@@ -342,13 +342,13 @@ const { formatDate, formatAmount } = useFormatter();
                     </div>
 
                     <!-- Security & Credentials Form -->
-                    <div class="overflow-hidden bg-white shadow-sm border border-slate-200/90 rounded-3xl p-6 sm:p-8">
-                        <div class="flex items-center gap-3 border-b border-slate-100 pb-4 mb-6">
-                            <div class="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
+                    <div class="overflow-hidden bg-white shadow-sm border border-slate-200/90 rounded-2xl sm:rounded-3xl p-4 sm:p-8">
+                        <div class="flex items-center gap-3 border-b border-slate-100 pb-4 mb-5 sm:mb-6">
+                            <div class="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
                                 <font-awesome-icon icon="fa-solid fa-shield-halved" />
                             </div>
                             <div>
-                                <h3 class="font-display text-lg font-bold text-sky-950">
+                                <h3 class="font-display text-base sm:text-lg font-bold text-sky-950">
                                     Account Security
                                 </h3>
                                 <p class="text-xs text-slate-400 font-mono">Email & password access</p>
@@ -398,7 +398,7 @@ const { formatDate, formatAmount } = useFormatter();
                             <div class="pt-3 border-t border-slate-100 flex items-center justify-end">
                                 <button
                                     type="submit"
-                                    class="bg-sky-900 hover:bg-sky-800 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2"
+                                    class="w-full sm:w-auto bg-sky-900 hover:bg-sky-800 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2"
                                     :disabled="user_credentials.processing"
                                 >
                                     <font-awesome-icon v-if="user_credentials.processing" icon="fa-solid fa-spinner" spin />

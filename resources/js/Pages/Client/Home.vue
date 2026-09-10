@@ -327,7 +327,7 @@ const submitFeedback = () => {
     <AuthenticatedLayout>
         <div class="space-y-8">
             <!-- ── HERO BANNER: LUXURY CRUISE SHIPBOARD LOUNGE ── -->
-            <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sky-950 via-sky-900 to-slate-900 border border-sky-800/60 shadow-xl text-white p-6 sm:p-8 lg:p-10">
+            <section class="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-sky-950 via-sky-900 to-slate-900 border border-sky-800/60 shadow-xl text-white p-5 sm:p-8 lg:p-10">
                 <!-- Nautical Wave & Starburst Background -->
                 <div class="pointer-events-none absolute inset-0 opacity-10">
                     <svg class="w-full h-full object-cover" viewBox="0 0 800 400" preserveAspectRatio="none">
@@ -337,24 +337,24 @@ const submitFeedback = () => {
 
                 <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                     <div class="max-w-2xl space-y-3">
-                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[11px] font-mono font-bold tracking-widest uppercase text-orange-400">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[10px] sm:text-[11px] font-mono font-bold tracking-widest uppercase text-orange-400">
                             <font-awesome-icon icon="fa-solid fa-anchor" class="text-xs" />
                             <span>Passenger Deck • Talibon, Bohol</span>
                         </div>
 
-                        <h1 class="font-display text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight drop-shadow-sm">
+                        <h1 class="font-display text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight drop-shadow-sm">
                             Welcome Aboard, <span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-300">{{ user?.name || "Sailor" }}</span>!
                         </h1>
 
-                        <p class="text-sm sm:text-base text-slate-300 font-medium leading-relaxed">
+                        <p class="text-xs sm:text-base text-slate-300 font-medium leading-relaxed">
                             Your personal voyage command center at Butal Ship Hauz. Browse all configured event decks with natural sea breeze ambiance, check shift availability, and review your reservations.
                         </p>
 
                         <!-- Quick Shortcuts -->
-                        <div class="pt-2 flex flex-wrap items-center gap-3">
+                        <div class="pt-2 flex flex-wrap items-center gap-2 sm:gap-3">
                             <Link
                                 :href="route('client.booking.index')"
-                                class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-lg shadow-orange-500/25 transition-all hover:scale-[1.02]"
+                                class="inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-lg shadow-orange-500/25 transition-all hover:scale-[1.02] w-full sm:w-auto"
                             >
                                 <font-awesome-icon icon="fa-solid fa-calendar-plus" />
                                 <span>Book an Event Deck</span>
@@ -362,7 +362,7 @@ const submitFeedback = () => {
 
                             <button
                                 @click="activeTab = 'feeds'"
-                                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-white/10 hover:bg-white/20 border border-white/20 text-white backdrop-blur-md transition-all"
+                                class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-white/10 hover:bg-white/20 border border-white/20 text-white backdrop-blur-md transition-all"
                             >
                                 <font-awesome-icon icon="fa-solid fa-compass" class="text-orange-400" />
                                 <span>Browse Decks</span>
@@ -370,19 +370,19 @@ const submitFeedback = () => {
 
                             <Link
                                 :href="route('landing-page')"
-                                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-300 hover:text-white transition-colors"
+                                class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-300 hover:text-white transition-colors"
                             >
                                 <font-awesome-icon icon="fa-solid fa-globe" />
-                                <span>Public Virtual Tour</span>
+                                <span>Virtual Tour</span>
                             </Link>
                         </div>
                     </div>
 
                     <!-- Quick Shift Status Card -->
-                    <div class="lg:w-80 p-5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-xl space-y-3">
+                    <div class="lg:w-80 p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-xl space-y-3">
                         <div class="flex items-center justify-between pb-2 border-b border-white/10 text-xs font-mono">
-                            <span class="text-slate-300 font-bold uppercase tracking-wider">Shift Schedule</span>
-                            <span class="text-emerald-400 font-bold flex items-center gap-1">
+                            <span class="text-slate-300 font-bold uppercase tracking-wider text-[11px] sm:text-xs">Shift Schedule</span>
+                            <span class="text-emerald-400 font-bold flex items-center gap-1 text-[11px] sm:text-xs">
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
                                 Open for Booking
                             </span>
@@ -410,67 +410,67 @@ const submitFeedback = () => {
             </section>
 
             <!-- ── MARITIME STAT METRICS CARDS ── -->
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
                 <!-- Total Bookings -->
-                <div class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md transition-all group flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                <div class="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md transition-all group flex items-center gap-3 sm:gap-4">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center text-lg sm:text-xl shrink-0 group-hover:scale-110 transition-transform">
                         <font-awesome-icon icon="fa-solid fa-calendar-check" />
                     </div>
-                    <div>
-                        <p class="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Bookings</p>
-                        <p class="font-display text-2xl sm:text-3xl font-black text-sky-950 leading-tight">{{ bookings.length }}</p>
+                    <div class="min-w-0 flex-1">
+                        <p class="font-mono text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">Total Bookings</p>
+                        <p class="font-display text-xl sm:text-3xl font-black text-sky-950 leading-tight">{{ bookings.length }}</p>
                     </div>
                 </div>
 
                 <!-- Pending Review -->
-                <div class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md transition-all group flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                <div class="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md transition-all group flex items-center gap-3 sm:gap-4">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg sm:text-xl shrink-0 group-hover:scale-110 transition-transform">
                         <font-awesome-icon icon="fa-solid fa-hourglass-half" />
                     </div>
-                    <div>
-                        <p class="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">Pending Review</p>
-                        <p class="font-display text-2xl sm:text-3xl font-black text-amber-600 leading-tight">{{ pendingCount }}</p>
+                    <div class="min-w-0 flex-1">
+                        <p class="font-mono text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">Pending Review</p>
+                        <p class="font-display text-xl sm:text-3xl font-black text-amber-600 leading-tight">{{ pendingCount }}</p>
                     </div>
                 </div>
 
                 <!-- Confirmed / Completed -->
-                <div class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md transition-all group flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                <div class="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md transition-all group flex items-center gap-3 sm:gap-4">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg sm:text-xl shrink-0 group-hover:scale-110 transition-transform">
                         <font-awesome-icon icon="fa-solid fa-flag-checkered" />
                     </div>
-                    <div>
-                        <p class="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">Confirmed / Done</p>
-                        <p class="font-display text-2xl sm:text-3xl font-black text-emerald-700 leading-tight">{{ confirmedCount }}</p>
+                    <div class="min-w-0 flex-1">
+                        <p class="font-mono text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">Confirmed / Done</p>
+                        <p class="font-display text-xl sm:text-3xl font-black text-emerald-700 leading-tight">{{ confirmedCount }}</p>
                     </div>
                 </div>
 
                 <!-- Unread Alerts -->
-                <div class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md transition-all group flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                <div class="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md transition-all group flex items-center gap-3 sm:gap-4">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center text-lg sm:text-xl shrink-0 group-hover:scale-110 transition-transform">
                         <font-awesome-icon icon="fa-solid fa-bell" />
                     </div>
-                    <div>
-                        <p class="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">Shipboard Alerts</p>
-                        <p class="font-display text-2xl sm:text-3xl font-black text-orange-600 leading-tight">{{ unreadCount }}</p>
+                    <div class="min-w-0 flex-1">
+                        <p class="font-mono text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">Shipboard Alerts</p>
+                        <p class="font-display text-xl sm:text-3xl font-black text-orange-600 leading-tight">{{ unreadCount }}</p>
                     </div>
                 </div>
             </div>
 
             <!-- ── SEGMENTED CONTROL TABS ── -->
-            <div class="flex items-center justify-between flex-wrap gap-4 border-b border-slate-200 pb-4">
-                <div class="inline-flex p-1 rounded-2xl bg-slate-100 border border-slate-200">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 border-b border-slate-200 pb-4">
+                <div class="flex items-center gap-1 p-1 rounded-xl sm:rounded-2xl bg-slate-100 border border-slate-200 w-full sm:w-auto overflow-x-auto">
                     <button
                         @click="activeTab = 'feeds'"
                         :class="[
-                            'flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all',
+                            'flex-1 sm:flex-initial flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap',
                             activeTab === 'feeds'
                                 ? 'bg-white text-sky-950 shadow-sm'
                                 : 'text-slate-600 hover:text-sky-900'
                         ]"
                     >
-                        <font-awesome-icon icon="fa-solid fa-compass" class="text-orange-500" />
-                        <span>Available Ship Decks</span>
-                        <span class="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-mono">
+                        <font-awesome-icon icon="fa-solid fa-compass" class="text-orange-500 text-xs sm:text-sm" />
+                        <span><span class="hidden md:inline">Available </span>Decks</span>
+                        <span class="px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-700 text-[9px] sm:text-[10px] font-mono">
                             {{ deduplicatedVenues.length }}
                         </span>
                     </button>
@@ -478,15 +478,15 @@ const submitFeedback = () => {
                     <button
                         @click="activeTab = 'bookings'"
                         :class="[
-                            'flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all',
+                            'flex-1 sm:flex-initial flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap',
                             activeTab === 'bookings'
                                 ? 'bg-white text-sky-950 shadow-sm'
                                 : 'text-slate-600 hover:text-sky-900'
                         ]"
                     >
-                        <font-awesome-icon icon="fa-solid fa-book-bookmark" class="text-sky-600" />
+                        <font-awesome-icon icon="fa-solid fa-book-bookmark" class="text-sky-600 text-xs sm:text-sm" />
                         <span>My Bookings</span>
-                        <span class="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-mono">
+                        <span class="px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-700 text-[9px] sm:text-[10px] font-mono">
                             {{ bookings.length }}
                         </span>
                     </button>
@@ -494,32 +494,32 @@ const submitFeedback = () => {
                     <button
                         @click="activeTab = 'notifications'"
                         :class="[
-                            'flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all',
+                            'flex-1 sm:flex-initial flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap',
                             activeTab === 'notifications'
                                 ? 'bg-white text-sky-950 shadow-sm'
                                 : 'text-slate-600 hover:text-sky-900'
                         ]"
                     >
-                        <font-awesome-icon icon="fa-solid fa-bell" class="text-amber-500" />
-                        <span>Shipboard Alerts</span>
+                        <font-awesome-icon icon="fa-solid fa-bell" class="text-amber-500 text-xs sm:text-sm" />
+                        <span>Alerts</span>
                         <span
                             v-if="unreadCount > 0"
-                            class="px-2 py-0.5 rounded-full bg-orange-500 text-white text-[10px] font-mono font-bold animate-pulse"
+                            class="px-1.5 py-0.5 rounded-full bg-orange-500 text-white text-[9px] sm:text-[10px] font-mono font-bold animate-pulse"
                         >
                             {{ unreadCount }}
                         </span>
                     </button>
                 </div>
 
-                <div class="flex items-center gap-3">
-                    <span class="hidden sm:inline text-xs font-mono text-slate-400">
-                        Ambiance: Open-Air Natural Sea Breeze
+                <div class="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+                    <span class="text-[11px] sm:text-xs font-mono text-slate-400">
+                        Ambiance: Open-Air Sea Breeze
                     </span>
                     <Link
                         :href="route('client.booking.index')"
-                        class="inline-flex items-center gap-1.5 text-xs font-bold text-sky-800 hover:text-orange-500 transition-colors"
+                        class="inline-flex items-center gap-1.5 text-xs font-bold text-sky-800 hover:text-orange-500 transition-colors shrink-0"
                     >
-                        <span>Check Deck Schedule</span>
+                        <span>Check Schedule</span>
                         <font-awesome-icon icon="fa-solid fa-arrow-right" class="text-[10px]" />
                     </Link>
                 </div>
@@ -926,31 +926,31 @@ const submitFeedback = () => {
 
         <!-- ── DIGITAL E-RECEIPT / BOARDING VOUCHER MODAL ── -->
         <Modal :show="showReceiptModal" @close="closeReceiptModal" max-width="2xl">
-            <div v-if="activeReceiptBooking" class="p-6 sm:p-8 space-y-6 print:p-0">
+            <div v-if="activeReceiptBooking" class="p-4 sm:p-8 space-y-4 sm:space-y-6 max-h-[85vh] overflow-y-auto print:p-0 print:max-h-none">
                 <!-- Receipt Header (Nautical Ticket Style) -->
-                <div class="flex items-start justify-between border-b-2 border-dashed border-slate-200 pb-5">
+                <div class="flex items-start justify-between border-b-2 border-dashed border-slate-200 pb-4 sm:pb-5">
                     <div class="space-y-1">
-                        <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-sky-900 text-white font-mono text-[10px] font-bold uppercase tracking-widest">
+                        <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-sky-900 text-white font-mono text-[9px] sm:text-[10px] font-bold uppercase tracking-widest">
                             <span>🚢 BUTAL SHIP HAUZ</span>
                         </div>
-                        <h3 class="font-display font-black text-2xl text-sky-950">Official Reservation Voucher</h3>
-                        <p class="text-xs text-slate-500">
+                        <h3 class="font-display font-black text-xl sm:text-2xl text-sky-950">Official Reservation Voucher</h3>
+                        <p class="text-[11px] sm:text-xs text-slate-500">
                             Sitio Capawan, Poblacion, Talibon, Bohol • Hotlines: 0920 713 9299 / 0930 903 6834
                         </p>
                     </div>
                     <button
                         @click="closeReceiptModal"
-                        class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors print:hidden"
+                        class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors print:hidden shrink-0"
                     >
                         <font-awesome-icon icon="fa-solid fa-xmark" />
                     </button>
                 </div>
 
                 <!-- Reference & Status Strip -->
-                <div class="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-sky-50/70 border border-sky-100 text-xs">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 sm:p-4 rounded-2xl bg-sky-50/70 border border-sky-100 text-xs">
                     <div>
                         <span class="font-mono text-[10px] uppercase text-slate-400 font-bold block">Booking Reference</span>
-                        <span class="font-mono text-base font-black text-sky-950">
+                        <span class="font-mono text-sm sm:text-base font-black text-sky-950">
                             {{ activeReceiptBooking.booking_ref || activeReceiptBooking.id }}
                         </span>
                     </div>
@@ -960,14 +960,14 @@ const submitFeedback = () => {
                     </div>
                     <div>
                         <span class="font-mono text-[10px] uppercase text-slate-400 font-bold block">Reservation Status</span>
-                        <span :class="['px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border', getStatus(activeReceiptBooking.status).badge]">
+                        <span :class="['inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border', getStatus(activeReceiptBooking.status).badge]">
                             {{ getStatus(activeReceiptBooking.status).label }}
                         </span>
                     </div>
                 </div>
 
                 <!-- Event Itinerary Details -->
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-xs">
                     <div class="space-y-1">
                         <span class="text-slate-400 uppercase font-mono text-[10px] block">Event Package</span>
                         <span class="font-bold text-slate-800 block">{{ activeReceiptBooking.package }}</span>
@@ -987,12 +987,12 @@ const submitFeedback = () => {
                 </div>
 
                 <!-- Financial Ledger Breakdown Table -->
-                <div class="rounded-2xl border border-slate-200 overflow-hidden text-xs">
-                    <div class="bg-slate-100 px-4 py-2.5 font-mono font-bold uppercase tracking-wider text-slate-600 flex justify-between">
+                <div class="rounded-xl sm:rounded-2xl border border-slate-200 overflow-hidden text-[11px] sm:text-xs">
+                    <div class="bg-slate-100 px-3.5 sm:px-4 py-2.5 font-mono font-bold uppercase tracking-wider text-slate-600 flex justify-between">
                         <span>Description</span>
                         <span>Amount (PHP)</span>
                     </div>
-                    <div class="p-4 space-y-2.5 bg-white">
+                    <div class="p-3.5 sm:p-4 space-y-2.5 bg-white">
                         <div class="flex justify-between text-slate-700">
                             <span>Venue Deck Reservation ({{ activeReceiptBooking.package }})</span>
                             <span class="font-mono font-bold">₱{{ Number(activeReceiptBooking.total_amount || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 }) }}</span>
@@ -1007,9 +1007,9 @@ const submitFeedback = () => {
                         <div v-if="activeReceiptBooking.payment_transaction_ref" class="text-[11px] text-slate-400 pl-5 font-mono">
                             Payment Ref: {{ activeReceiptBooking.payment_transaction_ref }}
                         </div>
-                        <div class="pt-2 border-t-2 border-dashed border-slate-200 flex justify-between items-center text-sm">
+                        <div class="pt-2 border-t-2 border-dashed border-slate-200 flex justify-between items-center text-xs sm:text-sm">
                             <span class="font-bold text-orange-600">Remaining Balance Due on Event:</span>
-                            <span class="font-display font-black text-lg text-orange-600">
+                            <span class="font-display font-black text-base sm:text-lg text-orange-600">
                                 ₱{{ Number(activeReceiptBooking.remaining_balance || (activeReceiptBooking.total_amount * 0.5) || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 }) }}
                             </span>
                         </div>
@@ -1030,16 +1030,16 @@ const submitFeedback = () => {
                 </div>
 
                 <!-- Modal Actions -->
-                <div class="pt-4 border-t border-slate-100 flex items-center justify-between print:hidden">
+                <div class="pt-4 border-t border-slate-100 flex items-center justify-between gap-3 print:hidden">
                     <button
                         @click="closeReceiptModal"
-                        class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors"
+                        class="px-4 sm:px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors"
                     >
                         Close
                     </button>
                     <button
                         @click="printReceipt"
-                        class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-sky-900 hover:bg-sky-950 text-white text-xs font-bold shadow-sm transition-all"
+                        class="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 rounded-xl bg-sky-900 hover:bg-sky-950 text-white text-xs font-bold shadow-sm transition-all"
                     >
                         <font-awesome-icon icon="fa-solid fa-print" />
                         <span>Print / Save PDF</span>
@@ -1050,7 +1050,7 @@ const submitFeedback = () => {
 
         <!-- ── VENUE PERFORMANCE & FEEDBACK MODAL ── -->
         <Modal :show="showFeedbackModal" @close="closeFeedbackModal" max-width="lg">
-            <div v-if="activeFeedbackBooking" class="p-6 sm:p-8 space-y-6">
+            <div v-if="activeFeedbackBooking" class="p-4 sm:p-8 space-y-4 sm:space-y-6 max-h-[85vh] overflow-y-auto">
                 <!-- Modal Header -->
                 <div class="flex items-start justify-between border-b border-slate-100 pb-4">
                     <div>
@@ -1058,7 +1058,7 @@ const submitFeedback = () => {
                             <font-awesome-icon icon="fa-solid fa-star" />
                             <span>Voyage Experience Review</span>
                         </div>
-                        <h3 class="font-display font-black text-2xl text-sky-950 mt-1">
+                        <h3 class="font-display font-black text-xl sm:text-2xl text-sky-950 mt-1">
                             How was your event at Butal Ship Hauz?
                         </h3>
                         <p class="text-xs text-slate-500 mt-1">
@@ -1067,23 +1067,23 @@ const submitFeedback = () => {
                     </div>
                     <button
                         @click="closeFeedbackModal"
-                        class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors"
+                        class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors shrink-0"
                     >
                         <font-awesome-icon icon="fa-solid fa-xmark" />
                     </button>
                 </div>
 
-                <form @submit.prevent="submitFeedback" class="space-y-5">
+                <form @submit.prevent="submitFeedback" class="space-y-4 sm:space-y-5">
                     <!-- Overall Star Rating -->
                     <div class="text-center py-3 bg-sky-50/60 border border-sky-100 rounded-2xl">
                         <span class="text-xs font-mono font-bold uppercase text-slate-500 block mb-2">Overall Voyage Rating</span>
-                        <div class="flex items-center justify-center gap-2 text-3xl">
+                        <div class="flex items-center justify-center gap-2 text-2xl sm:text-3xl">
                             <button
                                 v-for="star in 5"
                                 :key="star"
                                 type="button"
                                 @click="feedbackForm.rating = star"
-                                class="transition-transform hover:scale-125 focus:outline-none"
+                                class="transition-transform hover:scale-125 focus:outline-none p-1"
                             >
                                 <font-awesome-icon
                                     icon="fa-solid fa-star"
@@ -1106,18 +1106,18 @@ const submitFeedback = () => {
                         <span class="text-xs font-mono font-bold uppercase text-slate-400 block">Performance Breakdown</span>
 
                         <!-- Cleanliness -->
-                        <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200/80">
                             <div>
                                 <p class="font-bold text-xs text-slate-800">🧼 Deck Cleanliness & Ambiance</p>
                                 <p class="text-[10px] text-slate-400">Sanitation of restrooms, decks & dining areas</p>
                             </div>
-                            <div class="flex items-center gap-1 text-sm">
+                            <div class="flex items-center gap-1.5 text-base sm:text-sm">
                                 <button
                                     v-for="s in 5"
                                     :key="s"
                                     type="button"
                                     @click="feedbackForm.cleanliness_rating = s"
-                                    class="hover:scale-110 transition-transform"
+                                    class="hover:scale-110 transition-transform p-0.5"
                                 >
                                     <font-awesome-icon
                                         icon="fa-solid fa-star"
@@ -1128,18 +1128,18 @@ const submitFeedback = () => {
                         </div>
 
                         <!-- Staff Hospitality -->
-                        <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200/80">
                             <div>
                                 <p class="font-bold text-xs text-slate-800">⚓ Crew Hospitality & Assistance</p>
                                 <p class="text-[10px] text-slate-400">Helpfulness and coordination of venue staff</p>
                             </div>
-                            <div class="flex items-center gap-1 text-sm">
+                            <div class="flex items-center gap-1.5 text-base sm:text-sm">
                                 <button
                                     v-for="s in 5"
                                     :key="s"
                                     type="button"
                                     @click="feedbackForm.staff_rating = s"
-                                    class="hover:scale-110 transition-transform"
+                                    class="hover:scale-110 transition-transform p-0.5"
                                 >
                                     <font-awesome-icon
                                         icon="fa-solid fa-star"
@@ -1150,18 +1150,18 @@ const submitFeedback = () => {
                         </div>
 
                         <!-- Sound & Lighting -->
-                        <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200/80">
                             <div>
                                 <p class="font-bold text-xs text-slate-800">🔊 Sound, Lights & Generator Reliability</p>
                                 <p class="text-[10px] text-slate-400">Audio clarity, mood lighting & uninterrupted power</p>
                             </div>
-                            <div class="flex items-center gap-1 text-sm">
+                            <div class="flex items-center gap-1.5 text-base sm:text-sm">
                                 <button
                                     v-for="s in 5"
                                     :key="s"
                                     type="button"
                                     @click="feedbackForm.facilities_rating = s"
-                                    class="hover:scale-110 transition-transform"
+                                    class="hover:scale-110 transition-transform p-0.5"
                                 >
                                     <font-awesome-icon
                                         icon="fa-solid fa-star"

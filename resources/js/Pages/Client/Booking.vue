@@ -726,10 +726,10 @@ onMounted(() => {
                             Manage your shipboard event reservations and inspect live deck shift availability.
                         </p>
                     </div>
-                    <div class="flex flex-wrap items-center gap-3">
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                         <button
                             @click="openScheduleModal"
-                            class="flex items-center justify-center gap-2 bg-sky-900 hover:bg-sky-800 text-white text-xs sm:text-sm font-bold tracking-wide px-5 py-2.5 rounded-xl shadow-sm transition-all"
+                            class="w-full sm:w-auto flex items-center justify-center gap-2 bg-sky-900 hover:bg-sky-800 text-white text-xs sm:text-sm font-bold tracking-wide px-5 py-2.5 rounded-xl shadow-sm transition-all"
                         >
                             <font-awesome-icon icon="fa-solid fa-calendar-days" class="text-orange-400" />
                             View Deck Schedules
@@ -739,7 +739,7 @@ onMounted(() => {
                                 showForm = true;
                                 currentStep = 1;
                             "
-                            class="flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs sm:text-sm font-bold tracking-wide px-6 py-2.5 rounded-xl shadow-md shadow-orange-500/25 transition-all hover:scale-[1.02]"
+                            class="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs sm:text-sm font-bold tracking-wide px-6 py-2.5 rounded-xl shadow-md shadow-orange-500/25 transition-all hover:scale-[1.02]"
                         >
                             <font-awesome-icon icon="fa-solid fa-plus-circle" />
                             Reserve a Deck
@@ -747,7 +747,7 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-md border border-sky-100 overflow-hidden px-6 py-6">
+                <div class="bg-white rounded-xl shadow-md border border-sky-100 overflow-hidden p-3 sm:p-6">
                     <Table
                         :data="tableData"
                         :columns="tableColumns"
@@ -833,17 +833,17 @@ onMounted(() => {
 
             <!-- BOOKING FORM VIEW -->
             <div v-if="showForm" class="max-w-4xl mx-auto">
-                <div v-if="currentStep < 6" class="mb-5 flex items-center justify-between">
+                <div v-if="currentStep < 6" class="mb-4 sm:mb-5 flex flex-wrap items-center justify-between gap-2">
                     <button
                         @click="showForm = false; currentStep = 1;"
-                        class="flex items-center gap-2 text-sm text-sky-700 hover:text-orange-500 font-bold tracking-wide transition-colors"
+                        class="flex items-center gap-2 text-xs sm:text-sm text-sky-700 hover:text-orange-500 font-bold tracking-wide transition-colors"
                     >
                         <font-awesome-icon icon="fa-solid fa-angles-left" />
                         Back to Bookings
                     </button>
                     <button
                         @click="openScheduleModal"
-                        class="flex items-center gap-1.5 text-xs font-bold text-sky-900 bg-sky-100 hover:bg-sky-200 px-3.5 py-1.5 rounded-lg border border-sky-200 transition-colors"
+                        class="flex items-center gap-1.5 text-xs font-bold text-sky-900 bg-sky-100 hover:bg-sky-200 px-3 py-1.5 rounded-lg border border-sky-200 transition-colors"
                     >
                         <font-awesome-icon icon="fa-solid fa-calendar-days" />
                         Check Deck Schedules
@@ -851,8 +851,43 @@ onMounted(() => {
                 </div>
 
                 <!-- Step Indicator -->
-                <div class="bg-white py-6 px-4 rounded-xl border border-sky-100 shadow-sm mb-6" v-if="currentStep < 6">
-                    <div class="max-w-3xl mx-auto">
+                <div class="bg-white p-3.5 sm:py-6 sm:px-4 rounded-xl border border-sky-100 shadow-sm mb-4 sm:mb-6" v-if="currentStep < 6">
+                    <!-- Mobile Progress Bar (< 640px) -->
+                    <div class="sm:hidden">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-[11px] font-bold text-sky-950 uppercase tracking-wider">
+                                Step {{ currentStep }} of 5
+                            </span>
+                            <span class="text-xs font-bold text-orange-600">
+                                {{ steps[currentStep - 1]?.label }}
+                            </span>
+                        </div>
+                        <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mb-2.5">
+                            <div 
+                                class="bg-gradient-to-r from-orange-500 to-amber-500 h-full rounded-full transition-all duration-300"
+                                :style="{ width: `${((currentStep - 1) / 4) * 100}%` }"
+                            ></div>
+                        </div>
+                        <div class="grid grid-cols-5 gap-1">
+                            <button
+                                v-for="step in steps.slice(0, 5)"
+                                :key="step.id"
+                                @click="step.id < currentStep && goToStep(step.id)"
+                                :disabled="step.id >= currentStep"
+                                :class="[
+                                    'py-1 rounded text-[10px] font-bold text-center transition-all truncate px-0.5',
+                                    step.id === currentStep ? 'bg-orange-500 text-white shadow-xs' :
+                                    step.id < currentStep ? 'bg-lime-100 text-lime-800' :
+                                    'bg-slate-50 text-slate-300'
+                                ]"
+                            >
+                                {{ step.id }}. {{ step.label }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Desktop Stepper (>= 640px) -->
+                    <div class="hidden sm:block max-w-3xl mx-auto">
                         <div class="flex items-center justify-between px-2" v-if="currentStep < 6">
                             <template v-for="(step, i) in steps.slice(0, 5)" :key="step.id">
                                 <button
@@ -872,7 +907,7 @@ onMounted(() => {
                 </div>
 
                 <div class="bg-white rounded-xl shadow-md border border-sky-100 overflow-hidden">
-                    <div v-if="Object.keys(errors).length" class="mx-8 mt-6 bg-red-50 border border-red-200 rounded-lg px-5 py-4">
+                    <div v-if="Object.keys(errors).length" class="mx-4 sm:mx-8 mt-4 sm:mt-6 bg-red-50 border border-red-200 rounded-lg px-4 sm:px-5 py-3 sm:py-4">
                         <p class="text-sm font-bold text-red-700 mb-2">Please fix the following errors:</p>
                         <ul class="list-disc list-inside space-y-1">
                             <li v-for="(error, field) in errors" :key="field" class="text-xs font-medium text-red-600">{{ error }}</li>
@@ -880,33 +915,33 @@ onMounted(() => {
                     </div>
 
                     <!-- ── STEP 1: EVENT DATE & TIME ──────────────────────── -->
-                    <div v-if="currentStep === 1" class="p-6 md:p-10">
-                        <div class="flex items-center justify-between gap-3 mb-2">
-                            <h2 class="font-display text-2xl font-bold text-sky-900">Event Date & Time</h2>
+                    <div v-if="currentStep === 1" class="p-4 sm:p-6 md:p-10">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
+                            <h2 class="font-display text-xl sm:text-2xl font-bold text-sky-900">Event Date & Time</h2>
                             <button
                                 @click="openScheduleModal"
                                 type="button"
-                                class="text-xs font-bold text-sky-700 hover:text-orange-600 bg-sky-50 border border-sky-200 px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5 transition-colors"
+                                class="text-xs font-bold text-sky-700 hover:text-orange-600 bg-sky-50 border border-sky-200 px-3 py-1.5 rounded-lg inline-flex items-center justify-center gap-1.5 transition-colors w-full sm:w-auto"
                             >
                                 <font-awesome-icon icon="fa-solid fa-calendar-week" />
                                 View Reserved Dates
                             </button>
                         </div>
-                        <p class="text-sm font-medium text-slate-500 mb-8">Select the date, time slot, and exact start time for your event at Butal Ship Hauz.</p>
+                        <p class="text-xs sm:text-sm font-medium text-slate-500 mb-6 sm:mb-8">Select the date, time slot, and exact start time for your event at Butal Ship Hauz.</p>
 
-                        <div class="mb-8">
+                        <div class="mb-6 sm:mb-8">
                             <label class="block text-sm font-bold text-sky-900 mb-3">
                                 Event Date
-                                <span v-if="reservedDates.length" class="text-xs font-normal text-amber-700 ml-2">
-                                    (Dates with dots • indicate existing deck reservations)
+                                <span v-if="reservedDates.length" class="text-xs font-normal text-amber-700 block sm:inline sm:ml-2 mt-0.5 sm:mt-0">
+                                    (Dots • indicate existing deck reservations)
                                 </span>
                             </label>
-                            <div class="max-w-md">
+                            <div class="w-full max-w-md">
                                 <CalendarPicker v-model="eventDate" :min="today" :reservedDates="reservedDates" />
                             </div>
 
                             <!-- Live Date Notice if existing bookings on selected date -->
-                            <div v-if="eventDate && selectedDateReservations.length > 0" class="mt-4 max-w-md bg-amber-50/90 border border-amber-300 rounded-xl p-4 shadow-sm">
+                            <div v-if="eventDate && selectedDateReservations.length > 0" class="mt-4 w-full max-w-md bg-amber-50/90 border border-amber-300 rounded-xl p-3.5 sm:p-4 shadow-sm">
                                 <div class="flex items-center gap-2 text-amber-900 font-bold text-xs mb-2">
                                     <font-awesome-icon icon="fa-solid fa-circle-info" class="text-amber-600" />
                                     Existing Reservations on {{ fmtDate(eventDate) }}:
@@ -941,72 +976,72 @@ onMounted(() => {
                             </div>
                         </div>
 
-                        <div class="mb-8">
+                        <div class="mb-6 sm:mb-8">
                             <label class="block text-sm font-bold text-sky-900 mb-3">Time Slot</label>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                                 <button
                                     v-for="slot in timeSlots" :key="slot.id" @click="timeSlotId = slot.id"
-                                    :class="['text-left border-2 rounded-xl p-5 transition-all duration-200 outline-none', timeSlotId === slot.id ? 'border-orange-500 bg-orange-50 shadow-sm shadow-orange-500/10' : 'border-slate-200 hover:border-orange-300 hover:bg-slate-50']"
+                                    :class="['text-left border-2 rounded-xl p-3.5 sm:p-5 transition-all duration-200 outline-none', timeSlotId === slot.id ? 'border-orange-500 bg-orange-50 shadow-sm shadow-orange-500/10' : 'border-slate-200 hover:border-orange-300 hover:bg-slate-50']"
                                 >
-                                    <p class="font-bold text-sky-900 text-base mb-1">{{ slot.label }}</p>
+                                    <p class="font-bold text-sky-900 text-sm sm:text-base mb-1">{{ slot.label }}</p>
                                     <p class="text-xs font-medium text-slate-500">{{ slot.time }}</p>
                                 </button>
                             </div>
                         </div>
 
-                        <div class="mb-8">
+                        <div class="mb-6 sm:mb-8">
                             <label class="block text-sm font-bold text-sky-900 mb-2">Exact Start / Arrival Time <span class="text-orange-500">*</span></label>
                             <p class="text-xs text-slate-500 mb-2">Please indicate the exact time you or your guests will arrive or start.</p>
-                            <input type="time" v-model="exactTime" class="w-full max-w-xs border border-slate-300 rounded-md px-4 py-2.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm" required />
+                            <input type="time" v-model="exactTime" class="w-full sm:max-w-xs border border-slate-300 rounded-md px-4 py-2.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm" required />
                         </div>
 
-                        <div class="mb-8">
+                        <div class="mb-6 sm:mb-8">
                             <label class="block text-sm font-bold text-sky-900 mb-3">Event Type</label>
-                            <select v-model="eventType" class="w-full max-w-md border border-slate-300 rounded-md px-4 py-3 text-sm font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 bg-white shadow-sm">
+                            <select v-model="eventType" class="w-full sm:max-w-md border border-slate-300 rounded-md px-4 py-3 text-sm font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 bg-white shadow-sm">
                                 <option value="" disabled>Select event type…</option>
                                 <option v-for="type in activeEventTypes" :key="type.id" :value="type.id">{{ type.type }}</option>
                             </select>
                         </div>
 
-                        <div v-if="eventDate && timeSlotId && exactTime && eventType" class="mt-8 bg-sky-50 border border-sky-200 rounded-lg px-6 py-5 flex items-center gap-4 shadow-inner">
-                            <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm border border-sky-100 flex-shrink-0">
+                        <div v-if="eventDate && timeSlotId && exactTime && eventType" class="mt-6 sm:mt-8 bg-sky-50 border border-sky-200 rounded-xl p-4 sm:px-6 sm:py-5 flex items-center gap-3 sm:gap-4 shadow-inner">
+                            <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm border border-sky-100 shrink-0">
                                 <span class="text-xl">⚓</span>
                             </div>
-                            <div>
-                                <p class="text-base font-bold text-sky-900 mb-1">{{ selectedEventTypeLabel }}</p>
-                                <p class="text-sm font-medium text-sky-700">{{ fmtDate(eventDate) }} &bull; {{ selectedTimeSlotData?.label }} ({{ formatExactTime(exactTime) }})</p>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm sm:text-base font-bold text-sky-900 mb-0.5 truncate">{{ selectedEventTypeLabel }}</p>
+                                <p class="text-xs sm:text-sm font-medium text-sky-700 truncate">{{ fmtDate(eventDate) }} &bull; {{ selectedTimeSlotData?.label }} ({{ formatExactTime(exactTime) }})</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- ── STEP 2: PACKAGES ────────────────────────────────── -->
-                    <div v-if="currentStep === 2" class="p-6 md:p-10">
-                        <div class="flex items-center justify-between gap-3 mb-2">
-                            <h2 class="font-display text-2xl font-bold text-sky-900">Venue Package & Mode</h2>
+                    <div v-if="currentStep === 2" class="p-4 sm:p-6 md:p-10">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
+                            <h2 class="font-display text-xl sm:text-2xl font-bold text-sky-900">Venue Package & Mode</h2>
                             <button
                                 @click="openScheduleModal"
                                 type="button"
-                                class="text-xs font-bold text-sky-700 hover:text-orange-600 bg-sky-50 border border-sky-200 px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5 transition-colors"
+                                class="text-xs font-bold text-sky-700 hover:text-orange-600 bg-sky-50 border border-sky-200 px-3 py-1.5 rounded-lg inline-flex items-center justify-center gap-1.5 transition-colors w-full sm:w-auto"
                             >
                                 <font-awesome-icon icon="fa-solid fa-calendar-week" />
                                 Check Deck Manifest
                             </button>
                         </div>
-                        <p class="text-sm font-medium text-slate-500 mb-6">
+                        <p class="text-xs sm:text-sm font-medium text-slate-500 mb-6">
                             Choose a venue deck for {{ selectedEventTypeLabel }} on {{ fmtDate(eventDate) }} ({{ selectedTimeSlotData?.label }}).
                         </p>
 
                         <!-- Banner if the currently selected package has an exclusive booking conflict -->
-                        <div v-if="currentVenueConflict" class="mb-8 bg-amber-50 border-2 border-amber-300 rounded-xl p-5 shadow-sm">
+                        <div v-if="currentVenueConflict" class="mb-6 sm:mb-8 bg-amber-50 border-2 border-amber-300 rounded-xl p-4 sm:p-5 shadow-sm">
                             <div class="flex items-start gap-3">
                                 <div class="w-9 h-9 rounded-full bg-amber-500 text-white flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">
                                     <font-awesome-icon icon="fa-solid fa-lock" />
                                 </div>
                                 <div class="flex-1">
-                                    <h4 class="text-base font-bold text-amber-950 mb-1">
+                                    <h4 class="text-sm sm:text-base font-bold text-amber-950 mb-1">
                                         Exclusive Reservation is Locked for this Venue Deck
                                     </h4>
-                                    <p class="text-sm font-medium text-amber-900 leading-relaxed mb-3">
+                                    <p class="text-xs sm:text-sm font-medium text-amber-900 leading-relaxed mb-3">
                                         <strong>{{ selectedPackageData?.name }}</strong> is already booked for <strong>{{ currentVenueConflict.event_type }}</strong> by <strong>{{ currentVenueConflict.booker_name }}</strong> on {{ fmtDate(eventDate) }} ({{ currentVenueConflict.time_slot }}).
                                         To maintain safety and fairness, duplicate exclusive buyouts are restricted.
                                     </p>
@@ -1019,21 +1054,21 @@ onMounted(() => {
                         </div>
 
                         <!-- Booking Mode Selector (Only when no conflict) -->
-                        <div v-if="selectedPackage && !currentVenueConflict" class="mb-8 bg-slate-50 border border-slate-200 rounded-xl p-5">
+                        <div v-if="selectedPackage && !currentVenueConflict" class="mb-6 sm:mb-8 bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-5">
                             <label class="block text-sm font-bold text-sky-900 mb-3">Select Reservation Mode</label>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                 <button
                                     type="button"
                                     @click="bookingMode = 'exclusive'"
                                     :class="[
-                                        'text-left border-2 rounded-xl p-4 transition-all',
+                                        'text-left border-2 rounded-xl p-3.5 sm:p-4 transition-all',
                                         bookingMode === 'exclusive'
                                             ? 'border-sky-600 bg-white shadow-sm'
                                             : 'border-slate-200 hover:border-sky-300 bg-white'
                                     ]"
                                 >
                                     <div class="flex items-center justify-between mb-1">
-                                        <span class="font-bold text-sky-950 text-sm flex items-center gap-2">
+                                        <span class="font-bold text-sky-950 text-xs sm:text-sm flex items-center gap-2">
                                             🚢 Exclusive Deck Reservation
                                         </span>
                                         <span v-if="bookingMode === 'exclusive'" class="text-sky-600 font-bold text-xs">Selected ✓</span>
@@ -1045,14 +1080,14 @@ onMounted(() => {
                                     type="button"
                                     @click="bookingMode = 'visitor'"
                                     :class="[
-                                        'text-left border-2 rounded-xl p-4 transition-all',
+                                        'text-left border-2 rounded-xl p-3.5 sm:p-4 transition-all',
                                         bookingMode === 'visitor'
                                             ? 'border-amber-500 bg-white shadow-sm'
                                             : 'border-slate-200 hover:border-amber-300 bg-white'
                                     ]"
                                 >
                                     <div class="flex items-center justify-between mb-1">
-                                        <span class="font-bold text-sky-950 text-sm flex items-center gap-2">
+                                        <span class="font-bold text-sky-950 text-xs sm:text-sm flex items-center gap-2">
                                             👥 Visitor Pass Mode
                                         </span>
                                         <span v-if="bookingMode === 'visitor'" class="text-amber-600 font-bold text-xs">Selected ✓</span>
@@ -1063,13 +1098,13 @@ onMounted(() => {
                         </div>
 
                         <!-- Venue Package Cards -->
-                        <div v-if="packages.length > 0" class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-10">
+                        <div v-if="packages.length > 0" class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 mb-8 sm:mb-10">
                             <button
                                 v-for="pkg in packages"
                                 :key="pkg.id"
                                 @click="selectPackageCard(pkg)"
                                 :class="[
-                                    'text-left border-2 rounded-xl p-6 transition-all duration-200 relative',
+                                    'text-left border-2 rounded-xl p-4 sm:p-6 transition-all duration-200 relative',
                                     selectedPackage === pkg.id
                                         ? 'border-orange-500 bg-orange-50 shadow-md shadow-orange-500/10'
                                         : 'border-slate-200 hover:border-orange-300 hover:bg-slate-50'
@@ -1098,16 +1133,16 @@ onMounted(() => {
                                     </span>
                                 </div>
 
-                                <p class="font-display font-bold text-sky-900 text-xl mb-2 pr-8">{{ pkg.name }}</p>
-                                <p class="text-sm font-medium text-slate-600 mb-4 leading-relaxed">{{ pkg.desc }}</p>
+                                <p class="font-display font-bold text-sky-900 text-lg sm:text-xl mb-2 pr-6 sm:pr-8">{{ pkg.name }}</p>
+                                <p class="text-xs sm:text-sm font-medium text-slate-600 mb-4 leading-relaxed">{{ pkg.desc }}</p>
                                 
                                 <div class="flex items-center gap-2 mb-4">
-                                    <font-awesome-icon icon="fa-solid fa-users" class="text-slate-400" />
+                                    <font-awesome-icon icon="fa-solid fa-users" class="text-slate-400 text-xs" />
                                     <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">{{ pkg.capacity }}</p>
                                 </div>
 
                                 <div>
-                                    <p class="text-orange-600 font-bold text-2xl">{{ getPackagePriceDisplay(pkg) }}</p>
+                                    <p class="text-orange-600 font-bold text-xl sm:text-2xl">{{ getPackagePriceDisplay(pkg) }}</p>
                                     <p v-if="getVenueConflict(pkg)" class="text-xs font-semibold text-amber-800 mt-1">
                                         Exclusive buyout unavailable for this slot. Visitor rate applies.
                                     </p>
@@ -1115,28 +1150,28 @@ onMounted(() => {
                             </button>
                         </div>
                         
-                        <div v-else class="text-center py-12 bg-white border border-slate-200 rounded-xl mb-10 shadow-sm">
+                        <div v-else class="text-center py-10 sm:py-12 bg-white border border-slate-200 rounded-xl mb-8 sm:mb-10 shadow-sm px-4">
                             <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
                                 <span class="text-2xl">📦</span>
                             </div>
-                            <p class="text-slate-500 font-medium text-base">No venue packages available for this event type yet.</p>
-                            <button @click="prevStep" class="mt-4 text-sm font-bold text-sky-600 hover:text-orange-500 transition-colors">&larr; Go back and choose another event</button>
+                            <p class="text-slate-500 font-medium text-sm sm:text-base">No venue packages available for this event type yet.</p>
+                            <button @click="prevStep" class="mt-4 text-xs sm:text-sm font-bold text-sky-600 hover:text-orange-500 transition-colors">&larr; Go back and choose another event</button>
                         </div>
 
                         <!-- Optional Add-ons (Only for exclusive mode) -->
-                        <div class="border-t-2 border-slate-100 pt-8" v-if="bookingMode === 'exclusive'">
+                        <div class="border-t-2 border-slate-100 pt-6 sm:pt-8" v-if="bookingMode === 'exclusive'">
                             <p class="text-sm font-bold text-sky-900 mb-4 flex items-center gap-2">
                                 Optional Add-ons
                                 <span class="font-medium text-slate-400 text-xs bg-slate-100 px-2 py-0.5 rounded-full">Select multiple</span>
                             </p>
                             
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                 <div
                                     v-for="addon in addons" :key="addon.id"
-                                    :class="['text-left border-2 rounded-xl p-5 transition-all duration-200 flex flex-col', selectedAddons.includes(addon.id) ? 'border-sky-500 bg-sky-50 shadow-md shadow-sky-500/10' : 'border-slate-200 hover:border-sky-300']"
+                                    :class="['text-left border-2 rounded-xl p-4 sm:p-5 transition-all duration-200 flex flex-col', selectedAddons.includes(addon.id) ? 'border-sky-500 bg-sky-50 shadow-md shadow-sky-500/10' : 'border-slate-200 hover:border-sky-300']"
                                 >
-                                    <div class="flex items-start gap-4 cursor-pointer" @click="toggleAddon(addon.id)">
-                                        <div class="mt-1 flex-shrink-0">
+                                    <div class="flex items-start gap-3 sm:gap-4 cursor-pointer" @click="toggleAddon(addon.id)">
+                                        <div class="mt-1 shrink-0">
                                             <div class="w-5 h-5 rounded border flex items-center justify-center transition-colors" :class="selectedAddons.includes(addon.id) ? 'bg-sky-500 border-sky-500' : 'border-slate-300 bg-white'">
                                                 <font-awesome-icon v-if="selectedAddons.includes(addon.id)" icon="fa-solid fa-check" class="text-white text-[10px]" />
                                             </div>
@@ -1144,14 +1179,14 @@ onMounted(() => {
                                         <div class="min-w-0 flex-1">
                                             <p class="text-sm font-bold text-sky-900 mb-1">{{ addon.name }}</p>
                                             <p class="text-xs font-medium text-slate-500 leading-relaxed mb-2">{{ addon.desc }}</p>
-                                            <p class="text-sm font-bold text-sky-700">
+                                            <p class="text-xs sm:text-sm font-bold text-sky-700">
                                                 + {{ fmt(addon.price) }}
                                                 <span v-if="addon.pricing_type === 'per_head'" class="text-xs text-slate-500 font-medium ml-1">/ head</span>
                                             </p>
                                         </div>
                                     </div>
                                     
-                                    <div v-if="selectedAddons.includes(addon.id) && addon.pricing_type === 'per_head'" class="ml-9 mt-4 pt-4 border-t border-sky-200/60 flex items-center justify-between">
+                                    <div v-if="selectedAddons.includes(addon.id) && addon.pricing_type === 'per_head'" class="ml-8 sm:ml-9 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-sky-200/60 flex items-center justify-between">
                                         <span class="text-xs font-bold text-sky-900 uppercase tracking-wide">Number of Pax:</span>
                                         <div class="flex items-center gap-3">
                                             <button type="button" @click.stop="addonQuantities[addon.id] = Math.max(1, addonQuantities[addon.id] - 1)" class="w-7 h-7 rounded-md bg-white border border-sky-200 text-sky-700 hover:bg-orange-500 hover:text-white font-bold flex items-center justify-center shadow-sm">−</button>
@@ -1165,13 +1200,13 @@ onMounted(() => {
                     </div>
 
                     <!-- ── STEP 3: CONTACT INFORMATION ────────────────────── -->
-                    <div v-if="currentStep === 3" class="p-6 md:p-10">
+                    <div v-if="currentStep === 3" class="p-4 sm:p-6 md:p-10">
                         <div class="flex items-center gap-3 mb-2">
-                            <h2 class="font-display text-2xl font-bold text-sky-900">Contact Information</h2>
+                            <h2 class="font-display text-xl sm:text-2xl font-bold text-sky-900">Contact Information</h2>
                         </div>
-                        <p class="text-sm font-medium text-slate-500 mb-8">Who should we coordinate with for this reservation?</p>
+                        <p class="text-xs sm:text-sm font-medium text-slate-500 mb-6 sm:mb-8">Who should we coordinate with for this reservation?</p>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                             <div>
                                 <label class="block text-sm font-bold text-sky-900 mb-2">First Name <span class="text-orange-500">*</span></label>
                                 <input v-model="contact.firstName" type="text" placeholder="e.g. Juan" required class="w-full border border-slate-300 rounded-md px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm" />
@@ -1186,14 +1221,14 @@ onMounted(() => {
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-sky-900 mb-2">Phone Number <span class="text-orange-500">*</span></label>
-                                <input v-model="contact.phone" type="tel" placeholder="e.g. 9123456789" pattern="^9d{9}$" maxlength="10" required class="w-full border border-slate-300 rounded-md px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm" />
+                                <input v-model="contact.phone" type="tel" placeholder="e.g. 9123456789" pattern="^9\d{9}$" maxlength="10" required class="w-full border border-slate-300 rounded-md px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm" />
                             </div>
                             
                             <div class="sm:col-span-2 pt-4 border-t border-slate-100">
                                 <label class="block text-sm font-bold text-sky-900 mb-3">
                                     Expected Number of {{ bookingMode === 'visitor' ? 'Visitors' : 'Guests' }}
                                 </label>
-                                <div class="flex items-center gap-4 bg-slate-50 w-max p-2 rounded-lg border border-slate-200">
+                                <div class="flex items-center justify-between sm:justify-start gap-4 bg-slate-50 w-full sm:w-max p-2 rounded-lg border border-slate-200">
                                     <button @click="contact.guestCount = Math.max(1, contact.guestCount - 1)" class="w-10 h-10 rounded-md bg-white border border-slate-300 text-slate-600 hover:bg-slate-100 hover:text-orange-500 font-bold transition-colors shadow-sm">−</button>
                                     <span class="text-sky-900 font-bold text-lg w-12 text-center">{{ contact.guestCount }}</span>
                                     <button @click="contact.guestCount += 1" class="w-10 h-10 rounded-md bg-white border border-slate-300 text-slate-600 hover:bg-slate-100 hover:text-orange-500 font-bold transition-colors shadow-sm">+</button>
@@ -1205,30 +1240,30 @@ onMounted(() => {
                             
                             <div class="sm:col-span-2">
                                 <label class="block text-sm font-bold text-sky-900 mb-2">Special Requests or Notes</label>
-                                <textarea v-model="contact.requests" rows="4" placeholder="Specific setup, dietary needs, theme requests, accessibility concerns…" class="w-full border border-slate-300 rounded-md px-4 py-3 text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm resize-none" />
+                                <textarea v-model="contact.requests" rows="3" placeholder="Specific setup, dietary needs, theme requests, accessibility concerns…" class="w-full border border-slate-300 rounded-md px-4 py-3 text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm resize-none" />
                             </div>
                         </div>
                     </div>
 
                     <!-- ── STEP 4: REVIEW ─────────────────────────────────── -->
-                    <div v-if="currentStep === 4" class="p-6 md:p-10">
+                    <div v-if="currentStep === 4" class="p-4 sm:p-6 md:p-10">
                         <div class="flex items-center gap-3 mb-2">
-                            <h2 class="font-display text-2xl font-bold text-sky-900">Review Your Booking</h2>
+                            <h2 class="font-display text-xl sm:text-2xl font-bold text-sky-900">Review Your Booking</h2>
                         </div>
-                        <p class="text-sm font-medium text-slate-500 mb-8">Please confirm all details before proceeding to payment.</p>
+                        <p class="text-xs sm:text-sm font-medium text-slate-500 mb-6 sm:mb-8">Please confirm all details before proceeding to payment.</p>
 
-                        <div class="bg-gradient-to-br from-sky-900 to-sky-700 rounded-xl px-6 py-5 mb-6 flex items-center gap-4 text-white shadow-md">
-                            <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                                <span class="text-2xl">🚢</span>
+                        <div class="bg-gradient-to-br from-sky-900 to-sky-700 rounded-xl px-5 sm:px-6 py-4 sm:py-5 mb-5 sm:mb-6 flex items-center gap-3 sm:gap-4 text-white shadow-md">
+                            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-full flex items-center justify-center shrink-0">
+                                <span class="text-xl sm:text-2xl">🚢</span>
                             </div>
                             <div>
-                                <p class="font-display font-bold text-xl tracking-wide">Butal Ship Hauz</p>
-                                <p class="text-sky-200 text-sm font-medium mt-0.5">Talibon, Bohol</p>
+                                <p class="font-display font-bold text-lg sm:text-xl tracking-wide">Butal Ship Hauz</p>
+                                <p class="text-sky-200 text-xs sm:text-sm font-medium mt-0.5">Talibon, Bohol</p>
                             </div>
                         </div>
 
-                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 mb-6">
-                            <div class="flex items-center justify-between mb-4">
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-6 mb-5 sm:mb-6">
+                            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
                                 <p class="text-xs font-bold text-orange-500 uppercase tracking-widest">
                                     Event Details
                                 </p>
@@ -1245,33 +1280,33 @@ onMounted(() => {
                             </div>
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8 text-sm">
-                                <div class="flex flex-col gap-1">
+                                <div class="flex flex-col gap-0.5">
                                     <span class="text-slate-500 font-medium text-xs uppercase">Event Type</span>
                                     <span class="font-bold text-sky-900">{{ selectedEventTypeLabel }}</span>
                                 </div>
-                                <div class="flex flex-col gap-1">
+                                <div class="flex flex-col gap-0.5">
                                     <span class="text-slate-500 font-medium text-xs uppercase">Date & Time</span>
                                     <span class="font-bold text-sky-900">
                                         {{ fmtDate(eventDate) }}<br/>
                                         <span class="text-slate-600 font-medium text-xs">{{ selectedTimeSlotData?.label }} ({{ formatExactTime(exactTime) }})</span>
                                     </span>
                                 </div>
-                                <div class="flex flex-col gap-1">
+                                <div class="flex flex-col gap-0.5">
                                     <span class="text-slate-500 font-medium text-xs uppercase">Number of {{ bookingMode === 'visitor' ? 'Visitors' : 'Guests' }}</span>
                                     <span class="font-bold text-sky-900">{{ contact.guestCount }} persons</span>
                                 </div>
-                                <div class="flex flex-col gap-1">
+                                <div class="flex flex-col gap-0.5">
                                     <span class="text-slate-500 font-medium text-xs uppercase">Contact Person</span>
                                     <span class="font-bold text-sky-900">{{ contact.firstName }} {{ contact.lastName }}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 mb-6">
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-6 mb-5 sm:mb-6">
                             <p class="text-xs font-bold text-orange-500 uppercase tracking-widest mb-4">Package & Add-ons</p>
                             <div class="flex justify-between items-start text-sm mb-4">
-                                <div>
-                                    <p class="font-bold text-sky-900 text-base mb-1">{{ selectedPackageData?.name }}</p>
+                                <div class="pr-3">
+                                    <p class="font-bold text-sky-900 text-sm sm:text-base mb-1">{{ selectedPackageData?.name }}</p>
                                     <p class="text-slate-500 font-medium text-xs">
                                         <template v-if="bookingMode === 'visitor'">
                                             ₱{{ selectedPackageData?.price_visitor }} x {{ contact.guestCount }} visitors
@@ -1281,19 +1316,19 @@ onMounted(() => {
                                         </template>
                                     </p>
                                 </div>
-                                <span class="font-bold text-sky-900 text-base">{{ fmt(packageTotal) }}</span>
+                                <span class="font-bold text-sky-900 text-sm sm:text-base shrink-0">{{ fmt(packageTotal) }}</span>
                             </div>
                             
                             <template v-if="selectedAddons.length && bookingMode !== 'visitor'">
                                 <div class="border-t border-slate-200 pt-4 mt-2 space-y-3">
-                                    <div v-for="id in selectedAddons" :key="id" class="flex justify-between text-sm">
+                                    <div v-for="id in selectedAddons" :key="id" class="flex justify-between items-start text-xs sm:text-sm gap-2">
                                         <span class="text-slate-600 font-medium">
                                             {{ addons.find(a => a.id === id)?.name }}
-                                            <span v-if="addons.find(a => a.id === id)?.pricing_type === 'per_head'" class="text-xs text-slate-400 ml-1">
+                                            <span v-if="addons.find(a => a.id === id)?.pricing_type === 'per_head'" class="text-xs text-slate-400 block sm:inline sm:ml-1">
                                                 ({{ fmt(addons.find(a => a.id === id)?.price) }} x {{ addonQuantities[id] }} pax)
                                             </span>
                                         </span>
-                                        <span class="font-bold text-slate-700">
+                                        <span class="font-bold text-slate-700 shrink-0">
                                             + {{ fmt(addons.find(a => a.id === id)?.price * (addonQuantities[id] || 1)) }}
                                         </span>
                                     </div>
@@ -1301,43 +1336,43 @@ onMounted(() => {
                             </template>
                         </div>
 
-                        <div class="bg-sky-50 border border-sky-200 rounded-xl p-6 flex justify-between items-center shadow-inner">
-                            <span class="font-bold text-sky-900 uppercase tracking-wider text-sm">Grand Total</span>
-                            <span class="text-3xl font-display font-bold text-orange-600">{{ fmt(grandTotal) }}</span>
+                        <div class="bg-sky-50 border border-sky-200 rounded-xl p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 shadow-inner">
+                            <span class="font-bold text-sky-900 uppercase tracking-wider text-xs sm:text-sm">Grand Total</span>
+                            <span class="text-2xl sm:text-3xl font-display font-bold text-orange-600">{{ fmt(grandTotal) }}</span>
                         </div>
                     </div>
 
                     <!-- ── STEP 5: PAYMENT ─────────────────────────────────── -->
-                    <div v-if="currentStep === 5" class="p-6 md:p-10">
+                    <div v-if="currentStep === 5" class="p-4 sm:p-6 md:p-10">
                         <div class="flex items-center gap-3 mb-2">
-                            <h2 class="font-display text-2xl font-bold text-sky-900">Payment & Reservation Deposit</h2>
+                            <h2 class="font-display text-xl sm:text-2xl font-bold text-sky-900">Payment & Reservation Deposit</h2>
                         </div>
-                        <p class="text-sm font-medium text-slate-500 mb-6">
+                        <p class="text-xs sm:text-sm font-medium text-slate-500 mb-5 sm:mb-6">
                             To officially confirm and lock your date on our calendar, a <strong>50% reservation downpayment</strong> is required.
                         </p>
 
                         <!-- Deposit vs Total Banner -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-gradient-to-r from-sky-50 to-orange-50 border border-sky-200/80 mb-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-4 rounded-2xl bg-gradient-to-r from-sky-50 to-orange-50 border border-sky-200/80 mb-6">
                             <div>
                                 <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 block">Total Package Amount</span>
-                                <span class="font-display font-black text-xl text-sky-950">{{ fmt(grandTotal) }}</span>
+                                <span class="font-display font-black text-lg sm:text-xl text-sky-950">{{ fmt(grandTotal) }}</span>
                             </div>
-                            <div class="sm:border-l sm:border-slate-200 sm:pl-4">
+                            <div class="border-t sm:border-t-0 sm:border-l border-slate-200/80 pt-2 sm:pt-0 sm:pl-4">
                                 <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-orange-600 flex items-center gap-1">
                                     <font-awesome-icon icon="fa-solid fa-lock" class="text-xs" />
                                     50% Downpayment Due Now
                                 </span>
-                                <span class="font-display font-black text-2xl text-orange-600">{{ fmt(downpaymentAmount) }}</span>
+                                <span class="font-display font-black text-xl sm:text-2xl text-orange-600">{{ fmt(downpaymentAmount) }}</span>
                             </div>
                         </div>
 
                         <!-- Payment Method Selector -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
                             <button
                                 v-for="m in activePaymentOptions" :key="m.id"
                                 @click="payment.method = m.id; payment.accountNumber = ''; payment.transactionNumber = '';"
                                 :class="[
-                                    'border-2 rounded-2xl py-3.5 px-4 text-center font-bold tracking-wide transition-all duration-200 flex items-center justify-center gap-2',
+                                    'border-2 rounded-2xl py-3 px-4 text-center font-bold tracking-wide transition-all duration-200 flex items-center justify-center gap-2 text-xs sm:text-sm',
                                     payment.method === m.id
                                         ? 'border-orange-500 bg-orange-50 text-orange-950 shadow-sm'
                                         : 'border-slate-200 text-slate-500 hover:border-orange-300 hover:bg-slate-50'
@@ -1352,26 +1387,26 @@ onMounted(() => {
                             <!-- GCash Scan-to-Pay QR Card -->
                             <div class="overflow-hidden rounded-2xl border-2 border-blue-500/80 bg-white shadow-lg">
                                 <!-- GCash Top Brand Banner -->
-                                <div class="bg-gradient-to-r from-[#005CE6] to-[#0042A6] px-5 py-3 text-white flex items-center justify-between">
+                                <div class="bg-gradient-to-r from-[#005CE6] to-[#0042A6] px-4 sm:px-5 py-3 text-white flex items-center justify-between">
                                     <div class="flex items-center gap-2">
                                         <div class="w-7 h-7 bg-white rounded-full flex items-center justify-center font-black text-[#005CE6] text-sm">
                                             G
                                         </div>
                                         <div>
-                                            <p class="font-display font-black text-sm tracking-wide leading-none">GCash Scan to Pay</p>
-                                            <p class="text-[10px] text-blue-100 font-mono mt-0.5">Instant Merchant QR Payment</p>
+                                            <p class="font-display font-black text-xs sm:text-sm tracking-wide leading-none">GCash Scan to Pay</p>
+                                            <p class="text-[9px] sm:text-[10px] text-blue-100 font-mono mt-0.5">Instant Merchant QR Payment</p>
                                         </div>
                                     </div>
-                                    <span class="px-2.5 py-0.5 rounded-full bg-white/20 text-white font-mono text-[10px] font-bold uppercase tracking-wider">
+                                    <span class="px-2 py-0.5 rounded-full bg-white/20 text-white font-mono text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">
                                         Official QR
                                     </span>
                                 </div>
 
-                                <div class="p-6 flex flex-col md:flex-row items-center gap-6">
+                                <div class="p-4 sm:p-6 flex flex-col md:flex-row items-center gap-5 sm:gap-6">
                                     <!-- QR Code Graphic Container -->
                                     <div class="shrink-0 flex flex-col items-center">
-                                        <div class="relative p-3 bg-white border-2 border-dashed border-blue-400 rounded-2xl shadow-inner group">
-                                            <div class="w-44 h-44 bg-white rounded-xl flex items-center justify-center p-1 relative overflow-hidden">
+                                        <div class="relative p-2 sm:p-3 bg-white border-2 border-dashed border-blue-400 rounded-2xl shadow-inner group">
+                                            <div class="w-36 h-36 sm:w-44 sm:h-44 bg-white rounded-xl flex items-center justify-center p-1 relative overflow-hidden">
                                                 <img
                                                     src="/images/gcash-qr.png"
                                                     alt="GCash QR Code"
@@ -1390,15 +1425,15 @@ onMounted(() => {
                                     <div class="flex-1 space-y-3 w-full text-center md:text-left">
                                         <div>
                                             <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">Account Name</span>
-                                            <p class="font-display font-black text-lg text-sky-950">
+                                            <p class="font-display font-black text-base sm:text-lg text-sky-950">
                                                 {{ selectedPaymentOption.account || 'Dalve S. / Butal Ship Hauz' }}
                                             </p>
                                         </div>
 
                                         <div>
                                             <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">GCash Mobile Number</span>
-                                            <div class="flex items-center justify-center md:justify-start gap-2 mt-1">
-                                                <span class="font-mono text-xl sm:text-2xl font-black text-blue-600 tracking-wider">
+                                            <div class="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-1">
+                                                <span class="font-mono text-lg sm:text-2xl font-black text-blue-600 tracking-wider">
                                                     {{ selectedPaymentOption.number }}
                                                 </span>
                                                 <button
@@ -1423,7 +1458,7 @@ onMounted(() => {
                             </div>
 
                             <!-- Customer Input: Mobile & Transaction Ref -->
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pt-2">
                                 <div>
                                     <label class="block text-sm font-bold text-sky-900 mb-2">
                                         Your {{ selectedPaymentOption.label }} Mobile Number <span class="text-orange-500">*</span>
@@ -1457,38 +1492,38 @@ onMounted(() => {
                     </div>
 
                     <!-- ── STEP 6: CONFIRMED ───────────────────────────────── -->
-                    <div v-if="currentStep === 6" class="p-10 text-center">
-                        <div class="w-20 h-20 bg-lime-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-lime-200">
-                            <font-awesome-icon icon="fa-solid fa-check" class="text-4xl text-lime-500" />
+                    <div v-if="currentStep === 6" class="p-6 sm:p-10 text-center">
+                        <div class="w-16 h-16 sm:w-20 sm:h-20 bg-lime-100 rounded-full flex items-center justify-center mx-auto mb-5 sm:mb-6 shadow-inner border border-lime-200">
+                            <font-awesome-icon icon="fa-solid fa-check" class="text-3xl sm:text-4xl text-lime-500" />
                         </div>
-                        <h2 class="font-display text-3xl font-bold text-sky-900 mb-3">Booking Confirmed!</h2>
-                        <p class="text-slate-500 font-medium mb-8">
+                        <h2 class="font-display text-2xl sm:text-3xl font-bold text-sky-900 mb-2 sm:mb-3">Booking Confirmed!</h2>
+                        <p class="text-xs sm:text-sm text-slate-500 font-medium mb-6 sm:mb-8">
                             A confirmation has been sent to <strong class="text-sky-800">{{ contact.email }}</strong>
                         </p>
 
-                        <div class="bg-sky-50 border border-sky-200 rounded-2xl p-8 inline-block mb-10 shadow-sm">
+                        <div class="bg-sky-50 border border-sky-200 rounded-2xl p-5 sm:p-8 w-full max-w-md mx-auto mb-8 sm:mb-10 shadow-sm">
                             <p class="text-xs font-bold text-sky-700 uppercase tracking-widest mb-2">Booking Reference</p>
-                            <p class="text-4xl font-bold font-mono text-orange-500 tracking-widest drop-shadow-sm">{{ reservationCode }}</p>
+                            <p class="text-2xl sm:text-4xl font-bold font-mono text-orange-500 tracking-wider break-all drop-shadow-sm">{{ reservationCode }}</p>
                         </div>
 
-                        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-                            <button @click="resetForm" class="bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold px-8 py-3 rounded-md shadow-md shadow-orange-500/20 transition-colors w-full sm:w-auto">Book Another Event</button>
-                            <button @click="resetForm" class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-sm font-bold px-8 py-3 rounded-md shadow-sm transition-colors w-full sm:w-auto">Back to Bookings</button>
+                        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+                            <button @click="resetForm" class="bg-orange-500 hover:bg-orange-600 text-white text-xs sm:text-sm font-bold px-6 sm:px-8 py-3 rounded-xl shadow-md shadow-orange-500/20 transition-colors w-full sm:w-auto">Book Another Event</button>
+                            <button @click="resetForm" class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-bold px-6 sm:px-8 py-3 rounded-xl shadow-sm transition-colors w-full sm:w-auto">Back to Bookings</button>
                         </div>
                     </div>
 
                     <!-- ── NAVIGATION ─────────────────────────────────────── -->
-                    <div v-if="currentStep < 6" class="px-6 md:px-10 py-6 border-t border-slate-100 bg-slate-50 flex justify-between items-center">
-                        <button v-if="currentStep > 1" @click="prevStep" class="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-sky-900 transition-colors bg-white border border-slate-300 px-5 py-2.5 rounded-md shadow-sm">
+                    <div v-if="currentStep < 6" class="px-4 sm:px-6 md:px-10 py-4 sm:py-6 border-t border-slate-100 bg-slate-50 flex flex-col-reverse sm:flex-row justify-between items-stretch sm:items-center gap-3">
+                        <button v-if="currentStep > 1" @click="prevStep" class="w-full sm:w-auto flex items-center justify-center gap-2 text-xs sm:text-sm font-bold text-slate-500 hover:text-sky-900 transition-colors bg-white border border-slate-300 px-5 py-2.5 rounded-xl shadow-sm">
                             <font-awesome-icon icon="fa-solid fa-arrow-left" /> Back
                         </button>
-                        <div v-else />
+                        <div v-else class="hidden sm:block" />
 
                         <button
                             v-if="currentStep === 5"
                             @click="confirmReservation"
                             :disabled="!step5Valid || form.processing"
-                            :class="['px-8 py-3 rounded-md font-bold text-sm transition-all shadow-md flex items-center gap-2', step5Valid && !form.processing ? 'bg-lime-500 hover:bg-lime-600 text-sky-950 shadow-lime-500/30' : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none']"
+                            :class="['w-full sm:w-auto px-6 sm:px-8 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-md flex items-center justify-center gap-2', step5Valid && !form.processing ? 'bg-lime-500 hover:bg-lime-600 text-sky-950 shadow-lime-500/30' : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none']"
                         >
                             <font-awesome-icon v-if="form.processing" icon="fa-solid fa-spinner" spin />
                             <span v-else>Confirm Booking</span>
@@ -1499,7 +1534,7 @@ onMounted(() => {
                             v-else
                             @click="currentStep === 1 ? checkAvailability() : currentStep === 4 ? openTermsModal() : nextStep()"
                             :disabled="(currentStep === 1 && (!step1Valid || isCheckingAvailability)) || (currentStep === 2 && !step2Valid) || (currentStep === 3 && !step3Valid)"
-                            :class="['px-8 py-3 rounded-md font-bold text-sm transition-all shadow-md flex items-center gap-2', (currentStep === 1 && step1Valid && !isCheckingAvailability) || (currentStep === 2 && step2Valid) || (currentStep === 3 && step3Valid) || currentStep === 4 ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-orange-500/20' : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none']"
+                            :class="['w-full sm:w-auto px-6 sm:px-8 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-md flex items-center justify-center gap-2', (currentStep === 1 && step1Valid && !isCheckingAvailability) || (currentStep === 2 && step2Valid) || (currentStep === 3 && step3Valid) || currentStep === 4 ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-orange-500/20' : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none']"
                         >
                             <font-awesome-icon v-if="isCheckingAvailability" icon="fa-solid fa-spinner" spin />
                             <span>{{ currentStep === 4 ? "Proceed to Payment" : isCheckingAvailability ? "Checking..." : "Continue" }}</span>
@@ -1509,7 +1544,7 @@ onMounted(() => {
                 </div>
 
                 <!-- Step counter -->
-                <p class="text-center text-xs font-bold uppercase tracking-widest text-slate-400 mt-6" v-if="currentStep < 6">
+                <p class="text-center text-xs font-bold uppercase tracking-widest text-slate-400 mt-4 sm:mt-6" v-if="currentStep < 6">
                     Step {{ currentStep }} of 5
                 </p>
             </div>
@@ -1517,26 +1552,26 @@ onMounted(() => {
 
         <!-- ── DECK SCHEDULE & RESERVATIONS MODAL ───────────────────────── -->
         <Modal :show="showScheduleModal" max-width="3xl" @close="closeScheduleModal">
-            <div class="p-6 border-b border-slate-100 bg-sky-950 text-white flex items-center justify-between">
+            <div class="p-4 sm:p-6 border-b border-slate-100 bg-sky-950 text-white flex items-center justify-between gap-3">
                 <div>
-                    <h3 class="font-display text-xl font-bold flex items-center gap-2">
+                    <h3 class="font-display text-base sm:text-xl font-bold flex items-center gap-2">
                         <font-awesome-icon icon="fa-solid fa-calendar-days" class="text-orange-400" />
-                        Butal Ship Hauz — Deck Booking Schedule & Manifest
+                        Deck Booking Schedule & Manifest
                     </h3>
-                    <p class="text-xs text-sky-200 mt-1">
+                    <p class="text-[11px] sm:text-xs text-sky-200 mt-0.5">
                         Upcoming reserved dates and deck shifts. Exclusive slots restrict duplicate bookings, but visitors are always welcome!
                     </p>
                 </div>
                 <button
                     @click="closeScheduleModal"
-                    class="text-sky-300 hover:text-white p-2 rounded-lg transition-colors"
+                    class="text-sky-300 hover:text-white p-2 rounded-lg transition-colors shrink-0"
                 >
                     <font-awesome-icon icon="fa-solid fa-xmark" class="text-lg" />
                 </button>
             </div>
 
             <!-- Search & Filters -->
-            <div class="p-6 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center gap-3">
+            <div class="p-3.5 sm:p-5 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
                 <div class="flex-1 min-w-[200px] relative">
                     <input
                         v-model="scheduleSearch"
@@ -1550,20 +1585,20 @@ onMounted(() => {
                     />
                 </div>
 
-                <div class="w-auto">
+                <div class="w-full sm:w-auto">
                     <select
                         v-model="scheduleDeckFilter"
-                        class="text-xs font-medium border border-slate-300 rounded-lg px-3 py-2 bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 shadow-sm"
+                        class="w-full sm:w-auto text-xs font-medium border border-slate-300 rounded-lg px-3 py-2 bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 shadow-sm"
                     >
                         <option value="all">All Venue Decks</option>
                         <option v-for="d in deckFilterOptions" :key="d" :value="d">{{ d }}</option>
                     </select>
                 </div>
 
-                <div class="w-auto">
+                <div class="w-full sm:w-auto">
                     <select
                         v-model="scheduleSlotFilter"
-                        class="text-xs font-medium border border-slate-300 rounded-lg px-3 py-2 bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 shadow-sm"
+                        class="w-full sm:w-auto text-xs font-medium border border-slate-300 rounded-lg px-3 py-2 bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 shadow-sm"
                     >
                         <option value="all">All Shifts</option>
                         <option value="morning">Morning (8AM–12PM)</option>
@@ -1575,10 +1610,10 @@ onMounted(() => {
             </div>
 
             <!-- Schedule List -->
-            <div class="p-6 max-h-[60vh] overflow-y-auto space-y-3">
+            <div class="p-3.5 sm:p-6 max-h-[60vh] overflow-y-auto space-y-3">
                 <div
                     v-if="filteredScheduleList.length === 0"
-                    class="text-center py-12 text-slate-500"
+                    class="text-center py-10 sm:py-12 text-slate-500"
                 >
                     <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2 text-slate-400">
                         <font-awesome-icon icon="fa-solid fa-calendar-check" class="text-xl" />
@@ -1590,35 +1625,35 @@ onMounted(() => {
                 <div
                     v-for="item in filteredScheduleList"
                     :key="item.id"
-                    class="bg-white border border-slate-200 hover:border-sky-300 rounded-xl p-4 shadow-sm transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    class="bg-white border border-slate-200 hover:border-sky-300 rounded-xl p-3.5 sm:p-4 shadow-sm transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4"
                 >
-                    <div class="flex items-start gap-3.5">
-                        <div class="w-12 h-12 rounded-xl bg-sky-50 border border-sky-200 flex flex-col items-center justify-center text-sky-900 flex-shrink-0">
-                            <font-awesome-icon icon="fa-solid fa-ship" class="text-sm mb-0.5 text-sky-700" />
-                            <span class="text-[9px] font-bold uppercase tracking-wider">Deck</span>
+                    <div class="flex items-start gap-3 sm:gap-3.5">
+                        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-sky-50 border border-sky-200 flex flex-col items-center justify-center text-sky-900 shrink-0">
+                            <font-awesome-icon icon="fa-solid fa-ship" class="text-xs sm:text-sm mb-0.5 text-sky-700" />
+                            <span class="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider">Deck</span>
                         </div>
-                        <div>
-                            <div class="flex flex-wrap items-center gap-2 mb-1">
+                        <div class="min-w-0">
+                            <div class="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
                                 <h4 class="font-bold text-sky-950 text-sm sm:text-base">{{ item.venue_title }}</h4>
                                 <span
                                     :class="[
-                                        'text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider',
+                                        'text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider',
                                         item.booking_mode === 'visitor'
                                             ? 'bg-amber-100 text-amber-900 border border-amber-300'
                                             : 'bg-indigo-100 text-indigo-900 border border-indigo-300'
                                     ]"
                                 >
-                                    {{ item.booking_mode === 'visitor' ? '👥 Visitor Group' : '🔒 Exclusive Event' }}
+                                    {{ item.booking_mode === 'visitor' ? '👥 Visitor' : '🔒 Exclusive' }}
                                 </span>
                             </div>
-                            <p class="text-xs font-semibold text-orange-600 mb-1">
-                                {{ item.event_type }} &bull; Reserved by {{ item.booker_name }}
+                            <p class="text-xs font-semibold text-orange-600 mb-1 truncate">
+                                {{ item.event_type }} &bull; By {{ item.booker_name }}
                             </p>
-                            <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500 font-medium">
+                            <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-slate-500 font-medium">
                                 <span>📅 {{ fmtDate(item.date) }}</span>
                                 <span>🕒 {{ item.time_slot }}</span>
                                 <span v-if="item.exact_time" class="text-slate-700 font-bold">
-                                    (Arrival: {{ formatExactTime(item.exact_time) }})
+                                    ({{ formatExactTime(item.exact_time) }})
                                 </span>
                             </div>
                         </div>
@@ -1627,22 +1662,22 @@ onMounted(() => {
                     <div class="sm:text-right border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-100 flex flex-col sm:items-end justify-center">
                         <span
                             :class="[
-                                'inline-block text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider',
+                                'inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider',
                                 item.booking_mode === 'exclusive'
                                     ? 'bg-amber-50 text-amber-900 border border-amber-200'
                                     : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                             ]"
                         >
-                            {{ item.booking_mode === 'exclusive' ? 'Exclusive Locked • Visitors Welcome' : 'Open for Bookings' }}
+                            {{ item.booking_mode === 'exclusive' ? 'Exclusive Locked' : 'Open for Bookings' }}
                         </span>
                     </div>
                 </div>
             </div>
 
-            <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+            <div class="p-3.5 sm:p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
                 <button
                     @click="closeScheduleModal"
-                    class="px-5 py-2 bg-sky-900 hover:bg-sky-800 text-white font-bold rounded-lg text-xs transition-colors shadow-sm"
+                    class="w-full sm:w-auto px-5 py-2 bg-sky-900 hover:bg-sky-800 text-white font-bold rounded-xl text-xs transition-colors shadow-sm"
                 >
                     Close Manifest
                 </button>
@@ -1651,13 +1686,13 @@ onMounted(() => {
 
         <!-- TERMS & CONDITIONS MODAL -->
         <Modal :show="showTermsModal" max-width="md" @close="closeTermsModal">
-            <div class="px-6 pt-6 pb-6 border-b border-slate-100">
-                <h3 class="font-display text-2xl font-bold text-sky-900 mb-2">Terms & Conditions</h3>
-                <p class="text-sm font-medium text-slate-500">Please read before proceeding to payment.</p>
+            <div class="px-5 sm:px-6 pt-5 sm:pt-6 pb-4 sm:pb-6 border-b border-slate-100">
+                <h3 class="font-display text-xl sm:text-2xl font-bold text-sky-900 mb-1 sm:mb-2">Terms & Conditions</h3>
+                <p class="text-xs sm:text-sm font-medium text-slate-500">Please read before proceeding to payment.</p>
             </div>
-            <div class="p-6 text-sm font-medium text-slate-600 space-y-4 max-h-72 overflow-y-auto">
+            <div class="p-4 sm:p-6 text-xs sm:text-sm font-medium text-slate-600 space-y-3 sm:space-y-4 max-h-64 sm:max-h-72 overflow-y-auto">
                 <p>By proceeding to payment, you agree to the following booking terms for Butal Ship Hauz:</p>
-                <ul class="list-disc list-inside space-y-3 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                <ul class="list-disc list-inside space-y-2.5 bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200 text-xs">
                     <li>Bookings are confirmed only upon receipt and verification of payment.</li>
                     <li>If you cancel your booking, you will only receive <strong class="text-red-600">50% of your total payment</strong> as a refund. The remaining 50% is retained as a cancellation fee.</li>
                     <li>Rescheduling requests are subject to venue availability and must be made at least 3 days before the event date.</li>
@@ -1665,9 +1700,9 @@ onMounted(() => {
                     <li>No-shows on the event date are not eligible for any refund.</li>
                 </ul>
             </div>
-            <div class="px-6 py-4 bg-slate-50 flex items-center justify-end gap-3 rounded-b-lg border-t border-slate-100">
-                <button @click="closeTermsModal" class="px-5 py-2.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold rounded-md transition-colors shadow-sm text-sm">Cancel</button>
-                <button @click="acceptTerms" class="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-md shadow-md shadow-orange-500/30 transition-colors flex items-center gap-2 text-sm">
+            <div class="px-4 sm:px-6 py-4 bg-slate-50 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3 rounded-b-xl border-t border-slate-100">
+                <button @click="closeTermsModal" class="w-full sm:w-auto px-5 py-2.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold rounded-xl transition-colors shadow-sm text-xs sm:text-sm">Cancel</button>
+                <button @click="acceptTerms" class="w-full sm:w-auto px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl shadow-md shadow-orange-500/30 transition-colors flex items-center justify-center gap-2 text-xs sm:text-sm">
                     I Agree, Continue <font-awesome-icon icon="fa-solid fa-arrow-right" />
                 </button>
             </div>
@@ -1675,24 +1710,24 @@ onMounted(() => {
 
         <!-- CANCEL BOOKING CONFIRMATION MODAL -->
         <Modal :show="showCancelModal" max-width="md" @close="closeCancelModal">
-            <div class="px-6 pt-6 pb-6 border-b border-slate-100">
-                <h3 class="font-display text-2xl font-bold text-sky-900 flex items-center gap-2">
+            <div class="px-5 sm:px-6 pt-5 sm:pt-6 pb-4 sm:pb-6 border-b border-slate-100">
+                <h3 class="font-display text-xl sm:text-2xl font-bold text-sky-900 flex items-center gap-2">
                     <font-awesome-icon icon="fa-solid fa-triangle-exclamation" class="text-red-500" /> Cancel Booking
                 </h3>
             </div>
-            <div class="p-6">
-                <p class="text-base font-medium text-slate-700 mb-3">
+            <div class="p-4 sm:p-6">
+                <p class="text-sm sm:text-base font-medium text-slate-700 mb-3">
                     Are you sure you want to cancel booking <strong class="font-mono text-sky-800 bg-sky-50 px-2 py-0.5 rounded border border-sky-100">{{ bookingToCancel?.ref }}</strong>?
                 </p>
-                <div class="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
-                    <p class="text-sm font-semibold text-red-800">
+                <div class="bg-red-50 border border-red-200 rounded-xl p-3.5 sm:p-4 mt-3 sm:mt-4">
+                    <p class="text-xs sm:text-sm font-semibold text-red-800">
                         Per our terms, only <strong>50% of the payment</strong> will be refunded upon cancellation. This action cannot be undone.
                     </p>
                 </div>
             </div>
-            <div class="px-6 py-4 bg-slate-50 flex items-center justify-end gap-3 rounded-b-lg border-t border-slate-100">
-                <button @click="closeCancelModal" :disabled="isCancelling" class="px-5 py-2.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold rounded-md transition-colors shadow-sm text-sm disabled:opacity-50">Keep Booking</button>
-                <button @click="confirmCancel" :disabled="isCancelling" class="px-6 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-md shadow-md shadow-red-500/30 transition-colors flex items-center gap-2 text-sm disabled:opacity-50">
+            <div class="px-4 sm:px-6 py-4 bg-slate-50 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3 rounded-b-xl border-t border-slate-100">
+                <button @click="closeCancelModal" :disabled="isCancelling" class="w-full sm:w-auto px-5 py-2.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold rounded-xl transition-colors shadow-sm text-xs sm:text-sm disabled:opacity-50">Keep Booking</button>
+                <button @click="confirmCancel" :disabled="isCancelling" class="w-full sm:w-auto px-6 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl shadow-md shadow-red-500/30 transition-colors flex items-center justify-center gap-2 text-xs sm:text-sm disabled:opacity-50">
                     <font-awesome-icon v-if="isCancelling" icon="fa-solid fa-spinner" spin />
                     <span v-else>Yes, Cancel Booking</span>
                 </button>

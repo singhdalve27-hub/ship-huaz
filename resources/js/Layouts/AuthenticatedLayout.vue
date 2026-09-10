@@ -78,12 +78,12 @@ const footerCols = [
 </script>
 
 <template>
-    <div class="flex flex-col min-h-screen bg-slate-50 font-body text-slate-800">
+    <div class="flex flex-col min-h-screen bg-slate-50 font-body text-slate-800 overflow-x-hidden">
         <!-- ── TOP MARITIME TICKER RIBBON ── -->
-        <aside class="bg-gradient-to-r from-sky-950 via-slate-900 to-sky-950 text-white text-[11px] font-mono border-b border-sky-900/60 shrink-0 z-40">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1.5 flex items-center justify-between gap-4">
+        <aside class="bg-gradient-to-r from-sky-950 via-slate-900 to-sky-950 text-white text-[10px] sm:text-[11px] font-mono border-b border-sky-900/60 shrink-0 z-40">
+            <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-1.5 flex items-center justify-between gap-2 sm:gap-4">
                 <div class="flex items-center gap-2 sm:gap-3 truncate">
-                    <span class="inline-flex items-center gap-1 text-orange-400 font-bold tracking-wider uppercase text-[10px]">
+                    <span class="inline-flex items-center gap-1 text-orange-400 font-bold tracking-wider uppercase text-[9px] sm:text-[10px]">
                         <font-awesome-icon icon="fa-solid fa-anchor" class="text-xs" />
                         Passenger Portal
                     </span>
@@ -93,7 +93,7 @@ const footerCols = [
                     <span class="hidden sm:inline text-slate-400">Natural Ocean Breeze & Bay Views</span>
                 </div>
 
-                <div class="flex items-center gap-4 text-slate-300 shrink-0 text-[10px] sm:text-[11px]">
+                <div class="flex items-center gap-3 sm:gap-4 text-slate-300 shrink-0 text-[10px] sm:text-[11px]">
                     <span class="hidden lg:inline text-sky-300">
                         <font-awesome-icon icon="fa-solid fa-clock" class="mr-1 text-orange-400" />
                         Shifts: Morning (8–12) • Afternoon (1–5) • Night (6–10)
@@ -111,20 +111,20 @@ const footerCols = [
 
         <!-- ── MAIN TOP NAVIGATION BAR ── -->
         <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-[74px] flex items-center justify-between gap-4">
+            <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-[74px] flex items-center justify-between gap-2 sm:gap-4">
                 <!-- Brand / Logo -->
-                <div class="flex items-center gap-6 lg:gap-8 h-full">
-                    <Link :href="route('client.home')" class="flex items-center gap-3 group no-underline shrink-0">
-                        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-sky-900 to-sky-700 flex items-center justify-center shadow-md shadow-sky-900/20 border border-sky-600/30 group-hover:scale-105 transition-transform">
-                            <svg class="w-6 h-6 fill-orange-400 drop-shadow-sm" viewBox="0 0 48 48">
+                <div class="flex items-center gap-4 sm:gap-6 lg:gap-8 h-full min-w-0">
+                    <Link :href="route('client.home')" class="flex items-center gap-2.5 sm:gap-3 group no-underline shrink-0">
+                        <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-sky-900 to-sky-700 flex items-center justify-center shadow-md shadow-sky-900/20 border border-sky-600/30 group-hover:scale-105 transition-transform">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6 fill-orange-400 drop-shadow-sm" viewBox="0 0 48 48">
                                 <path d="M24 6a6 6 0 1 0 0 12A6 6 0 0 0 24 6zm0 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 6c-1.1 0-2 .9-2 2v16.5C15 37 8.5 31 8.5 24H12c.83 0 1.5-.67 1.5-1.5S12.83 21 12 21H6c-.83 0-1.5.67-1.5 1.5S5.17 24 6 24c0 8.84 7.16 16 16 16s16-7.16 16-16h2.5a1.5 1.5 0 0 0 0-3H36c-.83 0-1.5.67-1.5 1.5S35.17 24 36 24c0 7-6.5 13-13.5 13.5V22c0-1.1-.9-2-2-2z" />
                             </svg>
                         </div>
-                        <div>
-                            <span class="font-display font-black text-sky-950 text-lg sm:text-xl tracking-tight leading-tight block">
+                        <div class="truncate">
+                            <span class="font-display font-black text-sky-950 text-base sm:text-xl tracking-tight leading-tight block truncate">
                                 BUTAL SHIP HAUZ
                             </span>
-                            <span class="font-mono text-[10px] font-bold text-slate-400 tracking-[0.16em] uppercase block">
+                            <span class="font-mono text-[9px] sm:text-[10px] font-bold text-slate-400 tracking-[0.12em] sm:tracking-[0.16em] uppercase block">
                                 Passenger Lounge
                             </span>
                         </div>
@@ -290,7 +290,7 @@ const footerCols = [
             </div>
 
             <!-- Page Content Slot -->
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+            <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
                 <slot />
             </div>
         </main>

@@ -144,28 +144,28 @@ onUnmounted(() => {
         <div class="min-h-screen bg-slate-50 pb-16">
             <!-- ── Sticky Header: Maritime Telegraph ── -->
             <div class="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
-                <div class="mx-auto max-w-4xl px-4 sm:px-8 pt-6 pb-3">
+                <div class="mx-auto max-w-4xl px-3 sm:px-8 pt-4 sm:pt-6 pb-3">
                     <!-- Title row -->
-                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4">
-                        <div class="flex items-center gap-3.5">
-                            <div class="w-11 h-11 bg-gradient-to-br from-sky-900 to-sky-700 rounded-xl flex items-center justify-center border border-sky-600/30 text-orange-400 shadow-sm shrink-0">
-                                <font-awesome-icon icon="fa-solid fa-tower-broadcast" class="text-base" />
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 pb-3 sm:pb-4">
+                        <div class="flex items-center gap-3 sm:gap-3.5">
+                            <div class="w-10 h-10 sm:w-11 sm:h-11 bg-gradient-to-br from-sky-900 to-sky-700 rounded-xl flex items-center justify-center border border-sky-600/30 text-orange-400 shadow-sm shrink-0">
+                                <font-awesome-icon icon="fa-solid fa-tower-broadcast" class="text-sm sm:text-base" />
                             </div>
                             <div>
-                                <h1 class="font-display text-2xl font-black leading-tight text-sky-950">
+                                <h1 class="font-display text-xl sm:text-2xl font-black leading-tight text-sky-950">
                                     Shipboard Telegraph & Signals
                                 </h1>
-                                <p class="font-mono text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-0.5">
+                                <p class="font-mono text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-0.5">
                                     Passenger Communications • Butal Ship Hauz
                                 </p>
                             </div>
                         </div>
 
                         <!-- Action buttons -->
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
                             <button
                                 v-if="unreadCount > 0"
-                                class="rounded-xl border border-sky-200 bg-sky-50 px-4 py-2 text-xs font-bold text-sky-800 transition-all hover:bg-sky-100 hover:text-sky-900 shadow-xs flex items-center gap-1.5"
+                                class="w-full sm:w-auto rounded-xl border border-sky-200 bg-sky-50 px-4 py-2 text-xs font-bold text-sky-800 transition-all hover:bg-sky-100 hover:text-sky-900 shadow-xs flex items-center justify-center gap-1.5"
                                 @click="markAllRead"
                             >
                                 <font-awesome-icon icon="fa-solid fa-check-double" class="text-orange-500" />
@@ -175,7 +175,7 @@ onUnmounted(() => {
                     </div>
                     
                     <!-- Segmented Tabs -->
-                    <div class="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200 gap-1 w-full sm:w-auto">
+                    <div class="flex overflow-x-auto no-scrollbar p-1 rounded-xl bg-slate-100 border border-slate-200 gap-1 w-full sm:w-auto">
                         <button
                             v-for="tab in [
                                 { key: 'all', label: 'All Signals' },
@@ -183,7 +183,7 @@ onUnmounted(() => {
                                 { key: 'messages', label: 'Direct Messages' },
                             ]"
                             :key="tab.key"
-                            class="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                            class="whitespace-nowrap flex-1 sm:flex-initial flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs font-bold transition-all"
                             :class="
                                 activeTab === tab.key
                                     ? 'bg-white text-sky-950 shadow-xs'
@@ -191,7 +191,7 @@ onUnmounted(() => {
                             "
                             @click="activeTab = tab.key"
                         >
-                            {{ tab.label }}
+                            <span>{{ tab.label }}</span>
                             <span
                                 v-if="tab.key === 'all' && unreadCount"
                                 class="rounded-full bg-orange-500 px-1.5 py-0.2 font-mono text-[10px] font-bold text-white shadow-xs"
@@ -204,19 +204,19 @@ onUnmounted(() => {
             </div>
 
             <!-- ── Notification List ── -->
-            <div class="mx-auto mt-8 max-w-4xl space-y-4 px-4 sm:px-8">
+            <div class="mx-auto mt-4 sm:mt-8 max-w-4xl space-y-3 sm:space-y-4 px-3 sm:px-8">
                 <!-- Empty state -->
                 <div
                     v-if="filtered.length === 0"
-                    class="flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white py-20 text-center shadow-sm"
+                    class="flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white py-16 sm:py-20 px-4 text-center shadow-sm"
                 >
-                    <div class="w-20 h-20 bg-sky-50 rounded-full flex items-center justify-center border border-sky-100 mb-2">
-                        <font-awesome-icon icon="fa-solid fa-bell-slash" class="text-4xl text-sky-300" />
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 bg-sky-50 rounded-full flex items-center justify-center border border-sky-100 mb-2">
+                        <font-awesome-icon icon="fa-solid fa-bell-slash" class="text-3xl sm:text-4xl text-sky-300" />
                     </div>
-                    <p class="font-display text-xl font-bold text-sky-900">
+                    <p class="font-display text-lg sm:text-xl font-bold text-sky-900">
                         No notifications yet
                     </p>
-                    <p class="text-sm font-medium text-slate-500">
+                    <p class="text-xs sm:text-sm font-medium text-slate-500">
                         We'll let you know when something comes in.
                     </p>
                 </div>
@@ -234,24 +234,24 @@ onUnmounted(() => {
                 >
                     <!-- Top row (clickable) -->
                     <div
-                        class="flex cursor-pointer items-start gap-4 p-5 sm:p-6"
+                        class="flex cursor-pointer items-start gap-3 sm:gap-4 p-4 sm:p-6"
                         @click="markRead(notif)"
                     >
                         <!-- Icon -->
                         <div
-                            class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border shadow-sm"
+                            class="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full border shadow-sm"
                             :class="iconBgClass(notif.type)"
                         >
-                            <font-awesome-icon v-if="notif.type === 'booking_reminder'" icon="fa-solid fa-clock" class="text-lg" />
-                            <font-awesome-icon v-else-if="notif.type === 'booking_confirmed'" icon="fa-solid fa-check-circle" class="text-lg" />
-                            <font-awesome-icon v-else icon="fa-solid fa-envelope" class="text-lg" />
+                            <font-awesome-icon v-if="notif.type === 'booking_reminder'" icon="fa-solid fa-clock" class="text-base sm:text-lg" />
+                            <font-awesome-icon v-else-if="notif.type === 'booking_confirmed'" icon="fa-solid fa-check-circle" class="text-base sm:text-lg" />
+                            <font-awesome-icon v-else icon="fa-solid fa-envelope" class="text-base sm:text-lg" />
                         </div>
 
                         <!-- Content -->
                         <div class="min-w-0 flex-1">
                             <!-- Meta row -->
                             <div
-                                class="mb-2 flex flex-wrap items-center gap-2"
+                                class="mb-1.5 sm:mb-2 flex flex-wrap items-center gap-1.5 sm:gap-2"
                             >
                                 <span
                                     class="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-sm"
@@ -273,13 +273,13 @@ onUnmounted(() => {
                             </div>
 
                             <!-- Title -->
-                            <h3 class="text-base font-bold text-sky-900 mb-1" :class="{ 'opacity-80': notif.read }">
+                            <h3 class="text-sm sm:text-base font-bold text-sky-900 mb-1" :class="{ 'opacity-80': notif.read }">
                                 {{ notif.title }}
                             </h3>
 
                             <!-- Body -->
                             <p
-                                class="text-sm font-medium leading-relaxed text-slate-600"
+                                class="text-xs sm:text-sm font-medium leading-relaxed text-slate-600"
                                 :class="{ 'opacity-80': notif.read }"
                             >
                                 {{ notif.body }}
@@ -302,7 +302,7 @@ onUnmounted(() => {
                         <!-- Unread dot -->
                         <span
                             v-if="!notif.read"
-                            class="mt-2 h-3 w-3 shrink-0 rounded-full bg-orange-500 shadow-sm"
+                            class="mt-1 sm:mt-2 h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0 rounded-full bg-orange-500 shadow-sm"
                         />
                     </div>
 
@@ -312,10 +312,10 @@ onUnmounted(() => {
                             expandedThread === notif.id &&
                             (notif.thread.length || notif.canReply)
                         "
-                        class="border-t border-slate-100 bg-slate-50 px-5 sm:px-6 py-5"
+                        class="border-t border-slate-100 bg-slate-50 px-4 sm:px-6 py-4 sm:py-5"
                     >
                         <!-- Messages -->
-                        <div class="space-y-4">
+                        <div class="space-y-3 sm:space-y-4">
                             <div
                                 v-for="msg in notif.thread"
                                 :key="msg.id"
@@ -327,14 +327,14 @@ onUnmounted(() => {
                                 "
                             >
                                 <div
-                                    class="max-w-[85%] sm:max-w-[70%] rounded-2xl px-4 py-3 text-sm shadow-sm"
+                                    class="max-w-[90%] sm:max-w-[70%] rounded-2xl px-3.5 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm shadow-sm"
                                     :class="
                                         msg.from === 'client'
                                             ? 'rounded-br-sm bg-sky-600 text-white shadow-sky-600/20'
                                             : 'rounded-bl-sm border border-slate-200 bg-white text-slate-700'
                                     "
                                 >
-                                    <div class="flex items-baseline justify-between gap-4 mb-1.5">
+                                    <div class="flex items-baseline justify-between gap-3 mb-1">
                                         <p
                                             class="text-[10px] font-bold uppercase tracking-wider"
                                             :class="msg.from === 'client' ? 'text-sky-200' : 'text-sky-800'"
@@ -342,7 +342,7 @@ onUnmounted(() => {
                                             {{ msg.name }}
                                         </p>
                                         <p
-                                            class="text-[10px] font-medium"
+                                            class="text-[9px] sm:text-[10px] font-medium"
                                             :class="msg.from === 'client' ? 'text-sky-300' : 'text-slate-400'"
                                         >
                                             {{ formatDate(msg.timestamp) }}
@@ -354,7 +354,7 @@ onUnmounted(() => {
                         </div>
 
                         <!-- Reply -->
-                        <div v-if="notif.canReply" class="mt-5 border-t border-slate-200 pt-5">
+                        <div v-if="notif.canReply" class="mt-4 sm:mt-5 border-t border-slate-200 pt-4 sm:pt-5">
                             <!-- Trigger -->
                             <div
                                 v-if="replyingTo !== notif.id"
@@ -373,23 +373,23 @@ onUnmounted(() => {
                             </div>
 
                             <!-- Reply box -->
-                            <div v-else class="space-y-3 relative">
+                            <div v-else class="space-y-2.5">
                                 <textarea
                                     v-model="replyText"
                                     rows="3"
                                     placeholder="Type your reply here… (Ctrl + Enter to send)"
-                                    class="w-full resize-none rounded-xl border border-slate-300 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition-shadow focus:border-orange-500 focus:ring-1 focus:ring-orange-500 shadow-sm pr-24"
+                                    class="w-full resize-none rounded-xl border border-slate-300 px-3.5 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-slate-700 outline-none transition-shadow focus:border-orange-500 focus:ring-1 focus:ring-orange-500 shadow-sm"
                                     @keydown.ctrl.enter="sendReply(notif)"
                                 />
-                                <div class="absolute bottom-4 right-3 flex items-center gap-2">
+                                <div class="flex items-center justify-end gap-2">
                                     <button
-                                        class="rounded-md px-3 py-1.5 text-xs font-bold text-slate-500 transition-colors hover:text-red-500 hover:bg-red-50"
+                                        class="rounded-lg px-3.5 py-1.5 text-xs font-bold text-slate-500 transition-colors hover:text-red-500 hover:bg-red-50"
                                         @click.stop="replyingTo = null"
                                     >
                                         Cancel
                                     </button>
                                     <button
-                                        class="flex items-center justify-center gap-1.5 rounded-md bg-orange-500 px-4 py-1.5 text-xs font-bold text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50 shadow-md shadow-orange-500/20"
+                                        class="flex items-center justify-center gap-1.5 rounded-lg bg-orange-500 px-4 py-1.5 text-xs font-bold text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50 shadow-md shadow-orange-500/20"
                                         :disabled="!replyText.trim()"
                                         @click.stop="sendReply(notif)"
                                     >
@@ -406,7 +406,7 @@ onUnmounted(() => {
                     <!-- Expand toggle -->
                     <button
                         v-if="notif.thread.length || notif.canReply"
-                        class="w-full border-t border-slate-100 bg-slate-50 py-3 text-xs font-bold uppercase tracking-widest text-sky-700 transition-colors hover:bg-slate-100"
+                        class="w-full border-t border-slate-100 bg-slate-50 py-2.5 sm:py-3 text-xs font-bold uppercase tracking-widest text-sky-700 transition-colors hover:bg-slate-100"
                         @click="toggleThread(notif)"
                     >
                         <font-awesome-icon :icon="expandedThread === notif.id ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'" class="mr-1" />
