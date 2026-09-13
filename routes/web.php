@@ -73,7 +73,12 @@ Route::get('/system-health', function (\Illuminate\Http\Request $request) {
         try {
             $resetCheck = \Illuminate\Support\Facades\Password::sendResetLink(['email' => $request->get('email', 'Singhdalve27@gmail.com')]);
         } catch (\Throwable $e) {
-            $resetCheck = 'Reset error: ' . $e->getMessage() . ' (' . get_class($e) . ')';
+            $resetCheck = [
+                'error' => $e->getMessage(),
+                'class' => get_class($e),
+                'file' => $e->getFile() . ':' . $e->getLine(),
+                'trace' => collect($e->getTrace())->map(fn($t) => ($t['file'] ?? '') . ':' . ($t['line'] ?? '') . ' ' . ($t['function'] ?? ''))->take(12),
+            ];
         }
     }
 
