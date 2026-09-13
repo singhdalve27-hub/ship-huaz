@@ -117,6 +117,8 @@ class AppServiceProvider extends ServiceProvider
                     $table->string('status')->default('approved');
                     $table->timestamps();
                 });
+            }
+
             // 6. Ensure password_reset_tokens table exists for password recovery
             if (!Schema::hasTable('password_reset_tokens')) {
                 Schema::create('password_reset_tokens', function (Blueprint $table) {
