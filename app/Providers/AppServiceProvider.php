@@ -57,9 +57,9 @@ class AppServiceProvider extends ServiceProvider
         if (!app()->runningInConsole() || app()->runningUnitTests()) {
             $flagFile = storage_path('framework/bsh_schema_v2.flag');
             if (!file_exists($flagFile)) {
+                @touch($flagFile);
                 try {
                     $this->ensureDatabaseColumnsExist();
-                    @touch($flagFile);
                 } catch (\Throwable $e) {
                     // In case database is temporarily unreachable during boot
                 }

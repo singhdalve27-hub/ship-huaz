@@ -50,24 +50,6 @@ Route::get('/system-health', function (\Illuminate\Http\Request $request) {
         $dbStatus = 'error: ' . $e->getMessage();
     }
 
-    $tables = [
-        'password_reset_tokens' => \Illuminate\Support\Facades\Schema::hasTable('password_reset_tokens'),
-        'password_resets' => \Illuminate\Support\Facades\Schema::hasTable('password_resets'),
-        'users' => \Illuminate\Support\Facades\Schema::hasTable('users'),
-    ];
-
-    $mailCheck = null;
-    if ($request->has('check_mail')) {
-        try {
-            \Illuminate\Support\Facades\Mail::raw('Diagnostic email from Ship Hauz', function($m) use ($request) {
-                $m->to($request->get('email', 'Singhdalve27@gmail.com'))->subject('Ship Hauz Diagnostic');
-            });
-            $mailCheck = 'Mail sent successfully';
-        } catch (\Throwable $e) {
-            $mailCheck = 'Mail error: ' . $e->getMessage() . ' (' . get_class($e) . ')';
-        }
-    }
-
     $resetCheck = null;
     if ($request->has('check_reset')) {
         try {
@@ -77,7 +59,7 @@ Route::get('/system-health', function (\Illuminate\Http\Request $request) {
                 'error' => $e->getMessage(),
                 'class' => get_class($e),
                 'file' => $e->getFile() . ':' . $e->getLine(),
-                'trace' => collect($e->getTrace())->map(fn($t) => ($t['file'] ?? '') . ':' . ($t['line'] ?? '') . ' ' . ($t['function'] ?? ''))->take(12),
+                'trace' => collect($e->getTrace())->map(fn($t) => ($t['file'] ?? '') . ':' . ($t['line'] ?? '') . ' ' . ($t['function'] ?? ''))->take(10),
             ];
         }
     }
@@ -89,9 +71,6 @@ Route::get('/system-health', function (\Illuminate\Http\Request $request) {
         'db' => $dbStatus,
         'base_path' => base_path(),
         'composer_exists' => file_exists(base_path('composer.json')),
-        'composer_writable' => is_writable(base_path()),
-        'tables' => $tables,
-        'mail_check' => $mailCheck,
         'reset_check' => $resetCheck,
         'time' => now()->toIso8601String(),
     ]);
