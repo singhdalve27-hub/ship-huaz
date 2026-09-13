@@ -30,25 +30,30 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
-        // Clear stale cached routes if present on shared hosting
+        // Clear stale cached routes or config if present on shared hosting
         try {
             $cachedRoutes = base_path('bootstrap/cache/routes-v7.php');
             if (file_exists($cachedRoutes)) {
                 @unlink($cachedRoutes);
             }
+            $cachedConfig = base_path('bootstrap/cache/config.php');
+            if (file_exists($cachedConfig)) {
+                @unlink($cachedConfig);
+            }
         } catch (\Throwable $e) {
             // Graceful
         }
 
-        // Cache schema check for 24 hours to avoid 15+ DDL queries on every request
+        // Use local disk flag to prevent 15+ heavy DDL queries and database locks on every web request
         if (!app()->runningInConsole() || app()->runningUnitTests()) {
-            try {
-                \Illuminate\Support\Facades\Cache::remember('bsh_schema_synced_v3', 86400, function () {
+            $flagFile = storage_path('framework/bsh_schema_synced.flag');
+            if (!file_exists($flagFile)) {
+                try {
                     $this->ensureDatabaseColumnsExist();
-                    return true;
-                });
-            } catch (\Throwable $e) {
-                // In case database/cache is temporarily unreachable during boot
+                    @touch($flagFile);
+                } catch (\Throwable $e) {
+                    // In case database is temporarily unreachable during boot
+                }
             }
         }
     }

@@ -23,15 +23,41 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
+    try {
+        $posts = Post::where('status', 'active')->latest()->get();
+    } catch (\Throwable $e) {
+        $posts = collect();
+    }
+
+    try {
+        $venues = VenuePackage::with('eventType')->where('status', 'active')->get();
+    } catch (\Throwable $e) {
+        $venues = collect();
+    }
+
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
-        // Kukunin natin ang lahat ng active posts sa database at ipapasa sa Welcome.vue
-        'posts' => Post::where('status', 'active')->latest()->get(),
-        // Kukunin natin ang mga venues na sinet-up ng admin sa database at ipapasa sa Welcome.vue
-        'venues' => VenuePackage::with('eventType')->where('status', 'active')->get(),
+        'posts' => $posts,
+        'venues' => $venues,
     ]);
 })->name('landing-page');
+
+Route::get('/system-health', function () {
+    try {
+        $dbStatus = \Illuminate\Support\Facades\DB::connection()->getPdo() ? 'connected' : 'error';
+    } catch (\Throwable $e) {
+        $dbStatus = 'error: ' . $e->getMessage();
+    }
+
+    return response()->json([
+        'status' => 'online',
+        'php_version' => PHP_VERSION,
+        'app_env' => app()->environment(),
+        'db' => $dbStatus,
+        'time' => now()->toIso8601String(),
+    ]);
+});
 
 // Direct booking route that safely forwards query parameters to client booking wizard
 Route::get('/booking', function (\Illuminate\Http\Request $request) {
