@@ -2,11 +2,16 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Attributes\Unguarded;
 use Illuminate\Database\Eloquent\Model;
 
-#[Unguarded('*')]
 class UserInfo extends Model
 {
-    //
+    protected $fillable = [
+        'first_name',
+        'middle_name',
+        'last_name',
+        'birth_date',
+        'phone',
+        'address',
+    ];
 }

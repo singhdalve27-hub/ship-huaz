@@ -18,12 +18,14 @@ class EnsureUserIsClient
     public function handle(Request $request, Closure $next): Response
     {
         if (!Auth::check()) {
-            $email = $request->input('email');
-            $user = User::where('email', $email)->first();
+            if ($request->filled('email')) {
+                $email = $request->input('email');
+                $user = User::where('email', $email)->first();
 
-            if ($user && $user->role === 'admin') {
-                return redirect()->route('login')
-                    ->withErrors(['email' => 'This feature is not available for admin accounts.']);
+                if ($user && $user->role === 'admin') {
+                    return redirect()->route('login')
+                        ->withErrors(['email' => 'This feature is not available for admin accounts.']);
+                }
             }
 
             return $next($request);

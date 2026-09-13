@@ -98,6 +98,17 @@ class BookingController extends Controller
      */
     public function store(Request $request)
     {
+        if ($request->has('guest_phone')) {
+            $rawPhone = (string) $request->guest_phone;
+            $clean = preg_replace('/[^0-9]/', '', $rawPhone);
+            if (str_starts_with($clean, '63') && strlen($clean) === 12) {
+                $clean = substr($clean, 2);
+            } elseif (str_starts_with($clean, '0') && strlen($clean) === 11) {
+                $clean = substr($clean, 1);
+            }
+            $request->merge(['guest_phone' => $clean]);
+        }
+
         $validated = $request->validate([
             'date'                      => ['required', 'date', 'after_or_equal:today'],
             'time_slot'                 => ['required', 'string'],
@@ -119,9 +130,40 @@ class BookingController extends Controller
             'total_payment'             => ['required', 'numeric'], 
         ]);
 
+        $targetPackage = VenuePackage::find($validated['venue_package_id']);
+        if (!$targetPackage) {
+            return back()->withErrors(['venue_package_id' => 'Invalid venue package selected.']);
+        }
+
+        // Server-authoritative price verification to prevent client tampering
+        $computedPackagePrice = 0;
+        if ($validated['booking_mode'] === 'visitor') {
+            $computedPackagePrice = ($targetPackage->price_visitor ?? 0) * (int) $validated['guest_count'];
+        } else {
+            $slot = $validated['time_slot'];
+            if (str_contains($slot, '8:00 AM – 1:00 PM') || str_contains(strtolower($slot), 'morning')) {
+                $computedPackagePrice = $targetPackage->price_morning ?? $targetPackage->price;
+            } elseif (str_contains($slot, '1:00 PM – 5:00 PM') || str_contains(strtolower($slot), 'afternoon')) {
+                $computedPackagePrice = $targetPackage->price_afternoon ?? $targetPackage->price;
+            } elseif (str_contains($slot, '5:00 PM – 10:00 PM') || str_contains(strtolower($slot), 'night')) {
+                $computedPackagePrice = $targetPackage->price_night ?? $targetPackage->price;
+            } else {
+                $computedPackagePrice = $targetPackage->price_fullday ?? $targetPackage->price;
+            }
+        }
+
+        $computedAddonPrice = 0;
+        if (!empty($validated['package_add_ons'])) {
+            $computedAddonPrice = PackageAddOn::whereIn('id', $validated['package_add_ons'])->sum('price');
+        }
+
+        $expectedTotal = (float) ($computedPackagePrice + $computedAddonPrice);
+        if (abs((float)$validated['total_payment'] - $expectedTotal) > 1.0) {
+            $validated['total_payment'] = $expectedTotal;
+        }
+
         // Conflict prevention check for exclusive booking:
         if ($validated['booking_mode'] === 'exclusive') {
-            $targetPackage = VenuePackage::find($validated['venue_package_id']);
             $sameVenueIds = $targetPackage 
                 ? VenuePackage::where('title', $targetPackage->title)->pluck('id')->toArray()
                 : [$validated['venue_package_id']];
@@ -300,6 +342,10 @@ class BookingController extends Controller
 
     public function cancel(Booking $booking)
     {
+        if ($booking->user_id !== auth()->id() && auth()->user()->role !== 'admin') {
+            abort(403, 'Unauthorized action. You can only cancel your own bookings.');
+        }
+
         if ($booking->status === 'completed') {
             return back()->with([
                 'error' => 'This booking is already completed and cannot be cancelled.',

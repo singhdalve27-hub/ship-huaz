@@ -2,11 +2,16 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Attributes\Unguarded;
 use Illuminate\Database\Eloquent\Model;
 
-#[Unguarded('*')]
 class PaymentOption extends Model
 {
-    //
+    protected $fillable = [
+        'payment',
+        'number',
+        'account',
+        'description',
+        'qr_code',
+        'status',
+    ];
 }

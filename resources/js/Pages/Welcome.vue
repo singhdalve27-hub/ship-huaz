@@ -1513,7 +1513,7 @@ const socials = ref([
         <!-- 11. VENUE INCLUSIONS & DETAILS MODAL                   -->
         <!-- ══════════════════════════════════════════════════════ -->
         <Modal :show="showVenueModal" max-width="3xl" @close="closeVenueModal">
-            <div v-if="selectedVenue" class="bg-white flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3.5rem)]">
+            <div v-if="selectedVenue" class="bg-white flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3.5rem)] min-h-0">
                 <!-- Modal Top Banner (Fixed Header) -->
                 <div class="relative h-48 sm:h-64 w-full bg-slate-900 shrink-0">
                     <img 
@@ -1543,7 +1543,7 @@ const socials = ref([
                 </div>
 
                 <!-- Modal Content (Scrollable) -->
-                <div class="p-4 sm:p-7 space-y-5 overflow-y-auto flex-1 overscroll-contain">
+                <div class="p-4 sm:p-7 space-y-5 overflow-y-auto flex-1 min-h-0 overscroll-contain">
                     <!-- Quick Info Bar -->
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs">
                         <div>

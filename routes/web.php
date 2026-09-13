@@ -43,9 +43,9 @@ Route::middleware(['auth', 'verified', 'client'])->prefix('client')->name('clien
 
     Route::prefix('booking')->name('booking.')->group(function () {
         Route::get('/', [BookingController::class, 'index'])->name('index');
-        Route::post('/store', [BookingController::class, 'store'])->name('store');
+        Route::post('/store', [BookingController::class, 'store'])->middleware('throttle:15,1')->name('store');
         Route::put('/cancel/{booking}', [BookingController::class, 'cancel'])->name('cancel');
-        Route::post('/check-availability', [BookingController::class, 'checkAvailability'])->name('check-availability');
+        Route::post('/check-availability', [BookingController::class, 'checkAvailability'])->middleware('throttle:30,1')->name('check-availability');
     });
 
     Route::prefix('notifications')->name('notifications.')->group(function () {
@@ -61,7 +61,7 @@ Route::middleware(['auth', 'verified', 'client'])->prefix('client')->name('clien
         Route::get('/', [ProfileController::class, 'index'])->name('index');
     });
 
-    Route::post('/bookings/{booking}/feedback', [FeedbackController::class, 'store'])->name('feedback.store');
+    Route::post('/bookings/{booking}/feedback', [FeedbackController::class, 'store'])->middleware('throttle:10,1')->name('feedback.store');
 });
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -145,44 +145,56 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 Route::middleware('auth')->group(function () {
     Route::put('/update-information', [ProfileController::class, 'updateInformation'])->name('update-information');
     Route::put('/update-credentials', [ProfileController::class, 'updateCredentials'])->name('update-credentials');
-    Route::post('/client/bookings/{booking}/feedback', [FeedbackController::class, 'store'])->name('client.feedback.store');
 });
 
-Route::get('/api/chatbot', [ChatBotController::class, 'index'])->name('chatbot.index');
-Route::get('/api/chatbot/nodes', [ChatBotController::class, 'nodes'])->name('chatbot.nodes');
-Route::get('/api/chatbot/check-date', [ChatBotController::class, 'checkDate'])->name('chatbot.check-date');
-Route::get('/api/chatbot/track-booking', [ChatBotController::class, 'trackBooking'])->name('chatbot.track-booking');
-Route::match(['get', 'post'], '/api/chatbot/ask', [ChatBotController::class, 'ask'])->name('chatbot.ask');
+// Chatbot public API endpoints protected by rate limiting
+Route::middleware('throttle:45,1')->prefix('api/chatbot')->group(function () {
+    Route::get('/', [ChatBotController::class, 'index'])->name('chatbot.index');
+    Route::get('/nodes', [ChatBotController::class, 'nodes'])->name('chatbot.nodes');
+    Route::get('/check-date', [ChatBotController::class, 'checkDate'])->name('chatbot.check-date');
+    Route::get('/track-booking', [ChatBotController::class, 'trackBooking'])->name('chatbot.track-booking');
+    Route::match(['get', 'post'], '/ask', [ChatBotController::class, 'ask'])->name('chatbot.ask');
+});
 
-// Fallback route para sa /storage files upang maiwasan ang 404 kung hindi naka-link o nawawala ang uploaded files
-Route::get('/storage/{path}', function ($path) {
-    // 1. Tignan kung may totoong file sa storage/app/public/
-    $storageFile = storage_path('app/public/' . $path);
-    if (file_exists($storageFile) && !is_dir($storageFile)) {
+// Secure fallback route for /storage assets with strict path traversal prevention
+Route::get('/storage/{path}', function (string $path) {
+    // Block path traversal attempts
+    if (str_contains($path, '..') || str_contains($path, "\0") || str_contains($path, '\\')) {
+        abort(404);
+    }
+
+    $cleanPath = ltrim($path, '/');
+
+    // 1. Check storage/app/public/
+    $baseStorage = realpath(storage_path('app/public'));
+    $storageFile = realpath(storage_path('app/public/' . $cleanPath));
+    if ($storageFile && $baseStorage && str_starts_with($storageFile, $baseStorage) && is_file($storageFile)) {
         return response()->file($storageFile);
     }
 
-    // 2. Tignan kung may totoong file sa public/storage/
-    $publicStorageFile = public_path('storage/' . $path);
-    if (file_exists($publicStorageFile) && !is_dir($publicStorageFile)) {
+    // 2. Check public/storage/
+    $basePublicStorage = realpath(public_path('storage'));
+    $publicStorageFile = realpath(public_path('storage/' . $cleanPath));
+    if ($publicStorageFile && $basePublicStorage && str_starts_with($publicStorageFile, $basePublicStorage) && is_file($publicStorageFile)) {
         return response()->file($publicStorageFile);
     }
 
-    // 3. Tignan kung nasa public root mismo
-    $directPublic = public_path($path);
-    if (file_exists($directPublic) && !is_dir($directPublic)) {
-        return response()->file($directPublic);
+    // 3. Check public/images/
+    $baseImages = realpath(public_path('images'));
+    $imageFile = realpath(public_path('images/' . $cleanPath));
+    if ($imageFile && $baseImages && str_starts_with($imageFile, $baseImages) && is_file($imageFile)) {
+        return response()->file($imageFile);
     }
 
-    // 4. Graceful fallbacks para maiwasan ang 404 console errors sa production/local
-    if (str_contains($path, 'package_images') || str_contains($path, 'venue')) {
+    // 4. Graceful image fallbacks to prevent 404 broken image icons
+    if (str_contains($cleanPath, 'package_images') || str_contains($cleanPath, 'venue')) {
         $venueFallback = public_path('images/venue.jpg');
         if (file_exists($venueFallback)) {
             return response()->file($venueFallback);
         }
     }
 
-    if (str_contains($path, 'blog_images') || str_contains($path, 'post')) {
+    if (str_contains($cleanPath, 'blog_images') || str_contains($cleanPath, 'post')) {
         $blogFallback = public_path('images/blog1.jpg');
         if (file_exists($blogFallback)) {
             return response()->file($blogFallback);
@@ -197,14 +209,21 @@ Route::get('/storage/{path}', function ($path) {
     abort(404);
 })->where('path', '.*');
 
-// Fallback route para sa /images kung sakaling may hinahanap na asset na hindi direktang mahawakan ng web server
-Route::get('/images/{filename}', function ($filename) {
-    $filePath = public_path('images/' . $filename);
-    if (file_exists($filePath) && !is_dir($filePath)) {
+// Secure fallback route for /images with strict path traversal prevention
+Route::get('/images/{filename}', function (string $filename) {
+    if (str_contains($filename, '..') || str_contains($filename, "\0") || str_contains($filename, '\\')) {
+        abort(404);
+    }
+
+    $cleanName = ltrim($filename, '/');
+    $baseImages = realpath(public_path('images'));
+    $filePath = realpath(public_path('images/' . $cleanName));
+
+    if ($filePath && $baseImages && str_starts_with($filePath, $baseImages) && is_file($filePath)) {
         return response()->file($filePath);
     }
 
-    if (str_contains($filename, 'gcash') || str_contains($filename, 'qr')) {
+    if (str_contains($cleanName, 'gcash') || str_contains($cleanName, 'qr')) {
         return redirect('https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=09207139299&margin=10');
     }
 

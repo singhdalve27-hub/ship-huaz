@@ -30,6 +30,9 @@ const user_credentials = useForm({
 });
 
 const submitInformation = () => {
+    if (user_information.phone) {
+        user_information.phone = user_information.phone.toString().replace(/\D/g, '').replace(/^(?:0|63)/, '');
+    }
     user_information.put(route("update-information"));
 };
 
@@ -139,53 +142,105 @@ const { formatDate, formatAmount } = useFormatter();
                                 </span>
                             </div>
 
-                            <!-- Table -->
+                            <!-- Table / Mobile Cards -->
                             <div class="flex-1 min-h-[300px] sm:min-h-[350px]">
-                                <Table :data="tableData" :columns="TableColumns">
-                                    <template #ref="{ value }">
-                                        <span class="font-mono text-xs text-sky-900 font-bold bg-sky-50 px-2 py-0.5 rounded border border-sky-100">
-                                            {{ value }}
-                                        </span>
-                                    </template>
+                                <!-- Mobile View: Cards (Visible on screens < md) -->
+                                <div class="block md:hidden space-y-3">
+                                    <div
+                                        v-if="tableData.length === 0"
+                                        class="py-12 text-center text-slate-400 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200"
+                                    >
+                                        <font-awesome-icon icon="fa-solid fa-folder-open" class="text-3xl text-slate-300 mb-2" />
+                                        <p class="text-sm font-bold text-slate-700">No bookings found</p>
+                                    </div>
+                                    <div
+                                        v-for="row in tableData"
+                                        :key="row.ref"
+                                        class="p-4 rounded-2xl border border-slate-200/90 bg-white shadow-xs space-y-2.5"
+                                    >
+                                        <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                                            <span class="font-mono text-xs text-sky-900 font-bold bg-sky-50 px-2 py-0.5 rounded border border-sky-100">
+                                                {{ row.ref }}
+                                            </span>
+                                            <span
+                                                class="inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider"
+                                                :class="statusConfig[row.status]?.classes ?? 'bg-slate-100 text-slate-600'"
+                                            >
+                                                {{ statusConfig[row.status]?.label ?? row.status }}
+                                            </span>
+                                        </div>
 
-                                    <template #event="{ row }">
-                                        <span class="font-bold text-slate-800 text-xs sm:text-sm">{{ row.event }}</span>
-                                    </template>
+                                        <div>
+                                            <h4 class="font-bold text-sm text-sky-950">{{ row.event }}</h4>
+                                            <p class="text-xs text-slate-500">{{ row.package }}</p>
+                                            <p v-if="row.addons" class="text-[11px] text-slate-400 mt-0.5 truncate">+ {{ row.addons }}</p>
+                                        </div>
 
-                                    <template #date="{ value }">
-                                        <span class="font-medium text-slate-600 text-xs">{{ formatDate(value) }}</span>
-                                    </template>
+                                        <div class="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-100/80">
+                                            <div>
+                                                <span class="text-[10px] uppercase font-mono text-slate-400 block">Date & Shift</span>
+                                                <span class="font-semibold text-slate-700">{{ formatDate(row.date) }}</span>
+                                                <span class="block text-[11px] text-slate-500">{{ row.time }}</span>
+                                            </div>
+                                            <div class="text-right">
+                                                <span class="text-[10px] uppercase font-mono text-slate-400 block">Total Amount</span>
+                                                <span class="font-display font-bold text-orange-600 text-sm">
+                                                    {{ formatAmount(row.amount) }}
+                                                </span>
+                                                <span class="block text-[10px] text-slate-400">{{ row.payment_method }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
 
-                                    <template #package="{ row }">
-                                        <span class="font-bold text-sky-950 text-xs block">{{ row.package }}</span>
-                                        <span
-                                            v-if="row.addons"
-                                            class="block text-slate-400 font-medium text-[11px] mt-0.5 truncate max-w-[150px]"
-                                        >
-                                            + {{ row.addons }}
-                                        </span>
-                                    </template>
+                                <!-- Desktop View: Table (Visible on screens >= md) -->
+                                <div class="hidden md:block">
+                                    <Table :data="tableData" :columns="TableColumns">
+                                        <template #ref="{ value }">
+                                            <span class="font-mono text-xs text-sky-900 font-bold bg-sky-50 px-2 py-0.5 rounded border border-sky-100">
+                                                {{ value }}
+                                            </span>
+                                        </template>
 
-                                    <template #amount="{ value }">
-                                        <span class="font-display font-bold text-orange-600 text-xs sm:text-sm">
-                                            {{ formatAmount(value) }}
-                                        </span>
-                                    </template>
+                                        <template #event="{ row }">
+                                            <span class="font-bold text-slate-800 text-xs sm:text-sm">{{ row.event }}</span>
+                                        </template>
 
-                                    <template #payment="{ row }">
-                                        <span class="font-bold text-slate-700 text-xs block">{{ row.payment_method }}</span>
-                                        <span class="block text-slate-400 font-mono text-[10px] mt-0.5">Ref: {{ row.payment_ref }}</span>
-                                    </template>
+                                        <template #date="{ value }">
+                                            <span class="font-medium text-slate-600 text-xs">{{ formatDate(value) }}</span>
+                                        </template>
 
-                                    <template #status="{ value }">
-                                        <span
-                                            class="inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider"
-                                            :class="statusConfig[value]?.classes ?? 'bg-slate-100 text-slate-600'"
-                                        >
-                                            {{ statusConfig[value]?.label ?? value }}
-                                        </span>
-                                    </template>
-                                </Table>
+                                        <template #package="{ row }">
+                                            <span class="font-bold text-sky-950 text-xs block">{{ row.package }}</span>
+                                            <span
+                                                v-if="row.addons"
+                                                class="block text-slate-400 font-medium text-[11px] mt-0.5 truncate max-w-[150px]"
+                                            >
+                                                + {{ row.addons }}
+                                            </span>
+                                        </template>
+
+                                        <template #amount="{ value }">
+                                            <span class="font-display font-bold text-orange-600 text-xs sm:text-sm">
+                                                {{ formatAmount(value) }}
+                                            </span>
+                                        </template>
+
+                                        <template #payment="{ row }">
+                                            <span class="font-bold text-slate-700 text-xs block">{{ row.payment_method }}</span>
+                                            <span class="block text-slate-400 font-mono text-[10px] mt-0.5">Ref: {{ row.payment_ref }}</span>
+                                        </template>
+
+                                        <template #status="{ value }">
+                                            <span
+                                                class="inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider"
+                                                :class="statusConfig[value]?.classes ?? 'bg-slate-100 text-slate-600'"
+                                            >
+                                                {{ statusConfig[value]?.label ?? value }}
+                                            </span>
+                                        </template>
+                                    </Table>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -294,13 +349,18 @@ const { formatDate, formatAmount } = useFormatter();
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <InputLabel for="phone" value="Mobile / Contact No." class="text-slate-700 text-xs font-bold uppercase tracking-wider" />
-                                    <TextInput
-                                        id="phone"
-                                        type="text"
-                                        class="mt-1 block w-full border-slate-200 focus:border-orange-500 focus:ring-orange-500 rounded-xl text-sm"
-                                        v-model="user_information.phone"
-                                        placeholder="0912 345 6789"
-                                    />
+                                    <div class="relative mt-1 flex rounded-xl shadow-xs">
+                                        <span class="inline-flex items-center px-3.5 rounded-l-xl border border-r-0 border-slate-200 bg-slate-50 text-slate-600 font-mono text-xs font-bold select-none">
+                                            🇵🇭 +63
+                                        </span>
+                                        <TextInput
+                                            id="phone"
+                                            type="tel"
+                                            class="block w-full rounded-none rounded-r-xl border-slate-200 focus:border-orange-500 focus:ring-orange-500 text-sm"
+                                            v-model="user_information.phone"
+                                            placeholder="912 345 6789"
+                                        />
+                                    </div>
                                     <InputError class="mt-1" :message="user_information.errors.phone" />
                                 </div>
 

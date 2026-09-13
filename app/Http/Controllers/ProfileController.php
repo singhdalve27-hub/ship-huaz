@@ -58,6 +58,14 @@ class ProfileController extends Controller
      */
     public function updateInformation(Request $request): RedirectResponse
     {
+        $phone = preg_replace('/[^0-9]/', '', (string)$request->phone);
+        if (str_starts_with($phone, '63') && strlen($phone) === 12) {
+            $phone = substr($phone, 2);
+        } elseif (str_starts_with($phone, '0') && strlen($phone) === 11) {
+            $phone = substr($phone, 1);
+        }
+        $request->merge(['phone' => $phone]);
+
         $request->validate([
             'first_name' => 'required|string|max:255',
             'middle_name' => 'nullable|string|max:255',
@@ -67,14 +75,28 @@ class ProfileController extends Controller
             'address' => 'required|string|max:255',
         ]);
 
-        $request->user()->userInfo()->update([
-            'first_name' => $request->first_name,
-            'middle_name' => $request->middle_name,
-            'last_name' => $request->last_name,
-            'birth_date' => $request->birth_date,
-            'phone' => $request->phone,
-            'address' => $request->address,
-        ]);
+        $user = $request->user();
+        if ($user->userInfo) {
+            $user->userInfo->update([
+                'first_name' => $request->first_name,
+                'middle_name' => $request->middle_name,
+                'last_name' => $request->last_name,
+                'birth_date' => $request->birth_date,
+                'phone' => $request->phone,
+                'address' => $request->address,
+            ]);
+        } else {
+            $userInfo = \App\Models\UserInfo::create([
+                'first_name' => $request->first_name,
+                'middle_name' => $request->middle_name,
+                'last_name' => $request->last_name,
+                'birth_date' => $request->birth_date,
+                'phone' => $request->phone,
+                'address' => $request->address,
+            ]);
+            $user->user_info_id = $userInfo->id;
+            $user->save();
+        }
 
         if ($request->user()->role === 'admin') {
             return Redirect::route('admin.profile');

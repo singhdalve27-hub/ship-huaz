@@ -106,9 +106,9 @@ const maxWidthClass = computed(() => {
                 />
             </Transition>
 
-            <!-- Positioning wrapper: min-h-full flex justify-center with padding -->
+            <!-- Positioning wrapper: items-start/center with padding to prevent top cutoff -->
             <div
-                class="flex min-h-full justify-center p-3 sm:p-6 text-left"
+                class="flex min-h-full items-start sm:items-center justify-center p-2.5 sm:p-6 text-left"
                 @click.self="close"
             >
                 <!-- Modal Card -->
@@ -122,10 +122,12 @@ const maxWidthClass = computed(() => {
                 >
                     <div
                         v-show="show"
-                        class="relative my-auto w-full transform rounded-2xl bg-white shadow-2xl shadow-sky-900/40 border border-sky-100 transition-all overflow-hidden"
+                        class="relative my-3 sm:my-8 w-full transform rounded-2xl bg-white shadow-2xl shadow-sky-900/40 border border-sky-100 transition-all overflow-hidden max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3.5rem)] flex flex-col min-h-0"
                         :class="maxWidthClass"
                     >
-                        <slot v-if="showSlot" />
+                        <div class="overflow-y-auto overscroll-y-contain flex-1 min-h-0 flex flex-col">
+                            <slot v-if="showSlot" />
+                        </div>
                     </div>
                 </Transition>
             </div>

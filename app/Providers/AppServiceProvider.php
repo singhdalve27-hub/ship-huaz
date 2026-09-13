@@ -26,7 +26,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Vite::prefetch(concurrency: 3);
 
-        if (env('APP_ENV') !== 'production') {
+        if (app()->environment('production') || str_starts_with((string) config('app.url'), 'https://')) {
             URL::forceScheme('https');
         }
 
@@ -40,7 +40,17 @@ class AppServiceProvider extends ServiceProvider
             // Graceful
         }
 
-        $this->ensureDatabaseColumnsExist();
+        // Cache schema check for 24 hours to avoid 15+ DDL queries on every request
+        if (!app()->runningInConsole() || app()->runningUnitTests()) {
+            try {
+                \Illuminate\Support\Facades\Cache::remember('bsh_schema_synced_v3', 86400, function () {
+                    $this->ensureDatabaseColumnsExist();
+                    return true;
+                });
+            } catch (\Throwable $e) {
+                // In case database/cache is temporarily unreachable during boot
+            }
+        }
     }
 
     /**
@@ -106,6 +116,13 @@ class AppServiceProvider extends ServiceProvider
                     $table->text('comment')->nullable();
                     $table->string('status')->default('approved');
                     $table->timestamps();
+                });
+            // 6. Ensure password_reset_tokens table exists for password recovery
+            if (!Schema::hasTable('password_reset_tokens')) {
+                Schema::create('password_reset_tokens', function (Blueprint $table) {
+                    $table->string('email')->primary();
+                    $table->string('token');
+                    $table->timestamp('created_at')->nullable();
                 });
             }
 

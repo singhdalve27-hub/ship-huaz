@@ -839,7 +839,7 @@ const submitFeedback = () => {
 
         <!-- ── DECK INCLUSIONS & RATES MODAL ── -->
         <Modal :show="showDeckModal" @close="closeDeckModal" max-width="2xl">
-            <div v-if="activeDeck" class="flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3.5rem)]">
+            <div v-if="activeDeck" class="flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3.5rem)] min-h-0">
                 <!-- Modal Header (Fixed) -->
                 <div class="flex items-start justify-between gap-4 p-5 sm:p-6 pb-4 border-b border-slate-100 shrink-0 bg-white">
                     <div class="space-y-1">
@@ -862,7 +862,7 @@ const submitFeedback = () => {
                 </div>
 
                 <!-- Scrollable Content -->
-                <div class="p-5 sm:p-6 space-y-5 overflow-y-auto flex-1 overscroll-contain">
+                <div class="p-5 sm:p-6 space-y-5 overflow-y-auto flex-1 min-h-0 overscroll-contain">
                     <!-- Available Events Breakdown -->
                     <div class="space-y-3">
                         <h4 class="font-mono text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
@@ -929,7 +929,7 @@ const submitFeedback = () => {
 
         <!-- ── DIGITAL E-RECEIPT / BOARDING VOUCHER MODAL ── -->
         <Modal :show="showReceiptModal" @close="closeReceiptModal" max-width="2xl">
-            <div v-if="activeReceiptBooking" class="p-4 sm:p-8 space-y-4 sm:space-y-6 max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)] overflow-y-auto print:p-0 print:max-h-none">
+            <div v-if="activeReceiptBooking" class="p-4 sm:p-8 space-y-4 sm:space-y-6 max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)] min-h-0 overflow-y-auto print:p-0 print:max-h-none">
                 <!-- Receipt Header (Nautical Ticket Style) -->
                 <div class="flex items-start justify-between border-b-2 border-dashed border-slate-200 pb-4 sm:pb-5">
                     <div class="space-y-1">
@@ -1053,7 +1053,7 @@ const submitFeedback = () => {
 
         <!-- ── VENUE PERFORMANCE & FEEDBACK MODAL ── -->
         <Modal :show="showFeedbackModal" @close="closeFeedbackModal" max-width="lg">
-            <div v-if="activeFeedbackBooking" class="p-4 sm:p-8 space-y-4 sm:space-y-6 max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)] overflow-y-auto">
+            <div v-if="activeFeedbackBooking" class="p-4 sm:p-8 space-y-4 sm:space-y-6 max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)] min-h-0 overflow-y-auto">
                 <!-- Modal Header -->
                 <div class="flex items-start justify-between border-b border-slate-100 pb-4">
                     <div>

@@ -32,9 +32,20 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        if ($request->has('phone')) {
+            $rawPhone = (string) $request->phone;
+            $clean = preg_replace('/[^0-9]/', '', $rawPhone);
+            if (str_starts_with($clean, '63') && strlen($clean) === 12) {
+                $clean = substr($clean, 2);
+            } elseif (str_starts_with($clean, '0') && strlen($clean) === 11) {
+                $clean = substr($clean, 1);
+            }
+            $request->merge(['phone' => $clean]);
+        }
+
         $request->validate([
             'first_name' => 'required|string|max:255',
-            'middle_name' => 'string|max:255',
+            'middle_name' => 'nullable|string|max:255',
             'last_name' => 'required|string|max:255',
             'birth_date' => 'required|date',
             'phone' => ['required', 'regex:/^9\d{9}$/'],

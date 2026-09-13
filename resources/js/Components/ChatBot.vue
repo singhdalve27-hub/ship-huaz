@@ -51,7 +51,7 @@ const trackResult = ref(null);
 const fetchChatbotData = async (isInitial = false) => {
     if (isInitial) loading.value = true;
     try {
-        const apiUrl = (import.meta.env.VITE_APP_URL ? import.meta.env.VITE_APP_URL : "") + "/api/chatbot";
+        const apiUrl = "/api/chatbot";
         const res = await fetch(apiUrl);
         if (!res.ok) throw new Error("Failed to fetch chatbot data");
         const data = await res.json();
@@ -209,7 +209,7 @@ const executeDateCheck = async () => {
     dateCheckResult.value = null;
 
     try {
-        const apiUrl = (import.meta.env.VITE_APP_URL ? import.meta.env.VITE_APP_URL : "") + `/api/chatbot/check-date?date=${dateInputVal.value}`;
+        const apiUrl = `/api/chatbot/check-date?date=${dateInputVal.value}`;
         const res = await fetch(apiUrl);
         const data = await res.json();
         dateCheckResult.value = data;
@@ -231,7 +231,7 @@ const executeTrackBooking = async () => {
     trackResult.value = null;
 
     try {
-        const apiUrl = (import.meta.env.VITE_APP_URL ? import.meta.env.VITE_APP_URL : "") + `/api/chatbot/track-booking?query=${encodeURIComponent(trackInputVal.value.trim())}`;
+        const apiUrl = `/api/chatbot/track-booking?query=${encodeURIComponent(trackInputVal.value.trim())}`;
         const res = await fetch(apiUrl);
         const data = await res.json();
         trackResult.value = data;
@@ -326,7 +326,7 @@ const handleUserTextSubmit = async () => {
 
     // 4. Send freeform question to the Backend Universal QA Engine (/api/chatbot/ask)
     try {
-        const apiUrl = (import.meta.env.VITE_APP_URL ? import.meta.env.VITE_APP_URL : "") + `/api/chatbot/ask?question=${encodeURIComponent(text)}`;
+        const apiUrl = `/api/chatbot/ask?question=${encodeURIComponent(text)}`;
         const res = await fetch(apiUrl);
         if (!res.ok) throw new Error("Server response not ok");
         const data = await res.json();

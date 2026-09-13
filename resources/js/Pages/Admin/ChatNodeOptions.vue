@@ -21,7 +21,7 @@ const loadingNodes = ref(true);
 
 onMounted(async () => {
     try {
-        const res = await fetch(`${import.meta.env.VITE_APP_URL}/api/chatbot/nodes`);
+        const res = await fetch("/api/chatbot/nodes");
         const data = await res.json();
         allNodes.value = data.map((n) => ({
             value: String(n.id),

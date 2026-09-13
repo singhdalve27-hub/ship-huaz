@@ -2,14 +2,25 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Attributes\Unguarded;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Unguarded('*')]
 class Feedback extends Model
 {
     protected $table = 'feedbacks';
+
+    protected $fillable = [
+        'booking_id',
+        'user_id',
+        'venue_package_id',
+        'rating',
+        'cleanliness_rating',
+        'staff_rating',
+        'facilities_rating',
+        'value_rating',
+        'comment',
+        'status',
+    ];
 
     public function booking(): BelongsTo
     {

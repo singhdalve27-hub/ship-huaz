@@ -747,7 +747,8 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-md border border-sky-100 overflow-hidden p-3 sm:p-6">
+                <!-- Desktop Table View (>= md) -->
+                <div class="hidden md:block bg-white rounded-xl shadow-md border border-sky-100 overflow-hidden p-3 sm:p-6">
                     <Table
                         :data="tableData"
                         :columns="tableColumns"
@@ -828,6 +829,79 @@ onMounted(() => {
                             </button>
                         </template>
                     </Table>
+                </div>
+
+                <!-- Mobile Card View (< md) -->
+                <div class="md:hidden space-y-3">
+                    <div v-if="tableData.length === 0" class="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-400">
+                        <font-awesome-icon icon="fa-solid fa-folder-open" class="text-2xl text-orange-400 mb-2" />
+                        <p class="font-bold text-slate-700 text-sm">No reservations recorded yet</p>
+                    </div>
+
+                    <div
+                        v-for="row in tableData"
+                        :key="row.ref"
+                        class="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-3"
+                    >
+                        <div class="flex items-center justify-between">
+                            <span class="font-mono text-xs font-black text-sky-900 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200">
+                                {{ row.ref }}
+                            </span>
+                            <span
+                                class="inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full capitalize shadow-2xs"
+                                :class="statusConfig[row.status]?.classes ?? 'bg-slate-100 text-slate-600'"
+                            >
+                                {{ statusConfig[row.status]?.label ?? row.status }}
+                            </span>
+                        </div>
+
+                        <div>
+                            <p class="font-display font-black text-base text-sky-950">{{ row.event }}</p>
+                            <p class="text-xs font-semibold text-orange-600">{{ row.package }}</p>
+                            <p v-if="row.addons" class="text-[11px] text-slate-500 mt-0.5">+ {{ row.addons }}</p>
+                        </div>
+
+                        <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1.5 text-xs text-slate-600">
+                            <div class="flex items-center justify-between">
+                                <span>📅 Date & Shift:</span>
+                                <span class="font-bold text-slate-800">{{ formatDate(row.date) }} • {{ row.time }}</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span>🚢 Mode:</span>
+                                <span class="font-bold capitalize">{{ row.booking_mode || 'Exclusive' }}</span>
+                            </div>
+                            <div class="flex items-center justify-between pt-1 border-t border-slate-200/60">
+                                <span class="font-bold text-slate-800">Total Amount:</span>
+                                <span class="font-display font-black text-sm text-orange-600">{{ formatAmount(row.amount) }}</span>
+                            </div>
+                        </div>
+
+                        <div class="pt-2 border-t border-slate-100 flex items-center justify-end">
+                            <button
+                                @click="row.status !== 'completed' && row.status !== 'cancelled' ? openCancelModal(row) : null"
+                                :disabled="row.status === 'completed' || row.status === 'cancelled' || (isCancelling && bookingToCancel?.ref === row.ref)"
+                                :class="[
+                                    'font-bold px-4 py-2 rounded-xl transition-colors text-xs tracking-wide shadow-xs flex items-center justify-center gap-1.5 w-full',
+                                    row.status === 'completed' || row.status === 'cancelled'
+                                        ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                                        : 'bg-red-500 hover:bg-red-600 text-white'
+                                ]"
+                            >
+                                <template v-if="row.status === 'completed'">
+                                    <font-awesome-icon icon="fa-solid fa-lock" />
+                                    Completed
+                                </template>
+                                <template v-else-if="row.status === 'cancelled'">
+                                    <font-awesome-icon icon="fa-solid fa-ban" />
+                                    Cancelled
+                                </template>
+                                <template v-else>
+                                    <font-awesome-icon icon="fa-solid fa-xmark" />
+                                    Cancel Booking
+                                </template>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1220,8 +1294,23 @@ onMounted(() => {
                                 <input v-model="contact.email" type="email" placeholder="e.g. juan@example.com" required class="w-full border border-slate-300 rounded-md px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm" />
                             </div>
                             <div>
-                                <label class="block text-sm font-bold text-sky-900 mb-2">Phone Number <span class="text-orange-500">*</span></label>
-                                <input v-model="contact.phone" type="tel" placeholder="e.g. 9123456789" pattern="^9\d{9}$" maxlength="10" required class="w-full border border-slate-300 rounded-md px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm" />
+                                <label class="block text-sm font-bold text-sky-900 mb-2">Mobile Phone Number <span class="text-orange-500">*</span></label>
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center font-mono text-xs font-bold text-slate-500 pointer-events-none">
+                                        +63
+                                    </span>
+                                    <input
+                                        v-model="contact.phone"
+                                        @input="contact.phone = contact.phone.replace(/^(\+63|0)/, '').replace(/\D/g, '').slice(0, 10)"
+                                        type="tel"
+                                        placeholder="9123456789"
+                                        pattern="^9\d{9}$"
+                                        maxlength="10"
+                                        required
+                                        class="w-full pl-12 border border-slate-300 rounded-md px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm"
+                                    />
+                                </div>
+                                <p class="text-[10px] text-slate-400 mt-1">10 digits starting with 9 (e.g. 9123456789)</p>
                             </div>
                             
                             <div class="sm:col-span-2 pt-4 border-t border-slate-100">
@@ -1552,7 +1641,7 @@ onMounted(() => {
 
         <!-- ── DECK SCHEDULE & RESERVATIONS MODAL ───────────────────────── -->
         <Modal :show="showScheduleModal" max-width="3xl" @close="closeScheduleModal">
-            <div class="flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3.5rem)]">
+            <div class="flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3.5rem)] min-h-0">
                 <div class="p-4 sm:p-6 border-b border-slate-100 bg-sky-950 text-white flex items-center justify-between gap-3 shrink-0">
                     <div>
                         <h3 class="font-display text-base sm:text-xl font-bold flex items-center gap-2">
@@ -1611,7 +1700,7 @@ onMounted(() => {
                 </div>
 
                 <!-- Schedule List -->
-                <div class="p-3.5 sm:p-6 overflow-y-auto flex-1 overscroll-contain space-y-3">
+                <div class="p-3.5 sm:p-6 overflow-y-auto flex-1 min-h-0 overscroll-contain space-y-3">
                     <div
                         v-if="filteredScheduleList.length === 0"
                         class="text-center py-10 sm:py-12 text-slate-500"

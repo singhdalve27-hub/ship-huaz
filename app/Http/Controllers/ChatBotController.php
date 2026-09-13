@@ -162,17 +162,26 @@ class ChatBotController extends Controller
     public function trackBooking(Request $request): JsonResponse
     {
         $query = trim($request->query('query', ''));
-        if (strlen($query) < 3) {
+        $cleanPhone = preg_replace('/[^0-9]/', '', $query);
+        $isPhone = strlen($cleanPhone) >= 10;
+        $isRef = str_starts_with(strtoupper($query), 'BSH-') || strlen($query) >= 8;
+
+        if (!$isPhone && !$isRef) {
             return response()->json([
                 'found'   => false,
-                'message' => 'Please enter a valid Booking Reference (e.g., BSH-...) or contact phone number.',
+                'message' => 'Please enter your full 11-digit mobile number or exact Booking Reference (e.g., BSH-XXXXXXXX) to track your reservation.',
             ]);
         }
 
         $booking = Booking::with(['venuePackage', 'eventType'])
-            ->where(function($q) use ($query) {
-                $q->where('booking_ref', 'LIKE', "%{$query}%")
-                  ->orWhere('guest_phone', 'LIKE', "%{$query}%");
+            ->where(function($q) use ($query, $cleanPhone, $isPhone, $isRef) {
+                if ($isRef) {
+                    $q->where('booking_ref', strtoupper($query));
+                }
+                if ($isPhone) {
+                    $normPhone = substr($cleanPhone, -10); // Match last 10 digits e.g. 9123456789
+                    $q->orWhere('guest_phone', 'LIKE', "%{$normPhone}");
+                }
             })
             ->orderByDesc('id')
             ->first();
@@ -180,7 +189,7 @@ class ChatBotController extends Controller
         if (!$booking) {
             return response()->json([
                 'found'   => false,
-                'message' => "No reservation found matching '{$query}'. Please check your Booking Reference code (e.g., BSH-...) or registered phone number.",
+                'message' => "No reservation found matching '{$query}'. Please check your Booking Reference code (e.g., BSH-XXXXXXXX) or registered 11-digit phone number.",
             ]);
         }
 

@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Attributes\Unguarded;
 use Illuminate\Database\Eloquent\Model;
 
-#[Unguarded]
 class ChatBotNodeOption extends Model
 {
+    protected $fillable = [
+        'chat_bot_node_id',
+        'option',
+        'status',
+    ];
     protected $casts = [
         'option' => 'array',
     ];
