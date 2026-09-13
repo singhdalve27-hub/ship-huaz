@@ -16,6 +16,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        //
         try {
             \Closure::bind(function () {
                 $this->namespace = 'App\\';
@@ -36,8 +37,16 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
-        // Ensure minimal composer.json exists so Laravel Application::getNamespace() never throws on shared hosting
+        // Clear stale cached routes or config if present on shared hosting
         try {
+            $cachedRoutes = base_path('bootstrap/cache/routes-v7.php');
+            if (file_exists($cachedRoutes)) {
+                @unlink($cachedRoutes);
+            }
+            $cachedConfig = base_path('bootstrap/cache/config.php');
+            if (file_exists($cachedConfig)) {
+                @unlink($cachedConfig);
+            }
             $composerPath = base_path('composer.json');
             if (!file_exists($composerPath)) {
                 @file_put_contents($composerPath, json_encode([

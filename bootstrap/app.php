@@ -42,6 +42,22 @@ $app = Application::configure(basePath: dirname(__DIR__))
     })->create();
 
 try {
+    $composerPath = dirname(__DIR__) . '/composer.json';
+    if (!file_exists($composerPath)) {
+        @file_put_contents($composerPath, json_encode([
+            'name' => 'laravel/laravel',
+            'autoload' => [
+                'psr-4' => [
+                    'App\\' => 'app/',
+                ],
+            ],
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    }
+} catch (\Throwable $e) {
+    // Graceful
+}
+
+try {
     \Closure::bind(function () {
         $this->namespace = 'App\\';
     }, $app, get_class($app))();
