@@ -46,7 +46,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Use local disk flag to prevent 15+ heavy DDL queries and database locks on every web request
         if (!app()->runningInConsole() || app()->runningUnitTests()) {
-            $flagFile = storage_path('framework/bsh_schema_synced.flag');
+            $flagFile = storage_path('framework/bsh_schema_v2.flag');
             if (!file_exists($flagFile)) {
                 try {
                     $this->ensureDatabaseColumnsExist();

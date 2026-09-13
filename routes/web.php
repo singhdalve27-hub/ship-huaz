@@ -43,11 +43,38 @@ Route::get('/', function () {
     ]);
 })->name('landing-page');
 
-Route::get('/system-health', function () {
+Route::get('/system-health', function (\Illuminate\Http\Request $request) {
     try {
         $dbStatus = \Illuminate\Support\Facades\DB::connection()->getPdo() ? 'connected' : 'error';
     } catch (\Throwable $e) {
         $dbStatus = 'error: ' . $e->getMessage();
+    }
+
+    $tables = [
+        'password_reset_tokens' => \Illuminate\Support\Facades\Schema::hasTable('password_reset_tokens'),
+        'password_resets' => \Illuminate\Support\Facades\Schema::hasTable('password_resets'),
+        'users' => \Illuminate\Support\Facades\Schema::hasTable('users'),
+    ];
+
+    $mailCheck = null;
+    if ($request->has('check_mail')) {
+        try {
+            \Illuminate\Support\Facades\Mail::raw('Diagnostic email from Ship Hauz', function($m) use ($request) {
+                $m->to($request->get('email', 'Singhdalve27@gmail.com'))->subject('Ship Hauz Diagnostic');
+            });
+            $mailCheck = 'Mail sent successfully';
+        } catch (\Throwable $e) {
+            $mailCheck = 'Mail error: ' . $e->getMessage() . ' (' . get_class($e) . ')';
+        }
+    }
+
+    $resetCheck = null;
+    if ($request->has('check_reset')) {
+        try {
+            $resetCheck = \Illuminate\Support\Facades\Password::sendResetLink(['email' => $request->get('email', 'Singhdalve27@gmail.com')]);
+        } catch (\Throwable $e) {
+            $resetCheck = 'Reset error: ' . $e->getMessage() . ' (' . get_class($e) . ')';
+        }
     }
 
     return response()->json([
@@ -55,6 +82,9 @@ Route::get('/system-health', function () {
         'php_version' => PHP_VERSION,
         'app_env' => app()->environment(),
         'db' => $dbStatus,
+        'tables' => $tables,
+        'mail_check' => $mailCheck,
+        'reset_check' => $resetCheck,
         'time' => now()->toIso8601String(),
     ]);
 });
