@@ -29,6 +29,10 @@ class UserController extends Controller
      */
     public function updateStatus(Request $request, User $user)
     {
+        if ($user->role === 'admin' || $user->id === auth()->id()) {
+            return back()->withErrors(['status' => 'Cannot modify the status of an administrator or your own account.']);
+        }
+
         $request->validate([
             'status' => 'required|in:active,inactive',
         ]);

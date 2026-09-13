@@ -19,6 +19,7 @@ const user_information = useForm({
 
 const user_credentials = useForm({
     email: user.email,
+    current_password: "",
     password: "",
     password_confirmation: "",
 });
@@ -30,7 +31,7 @@ const submitInformation = () => {
 const submitCredentials = () => {
     user_credentials.put(route("update-credentials"), {
         onSuccess: () =>
-            user_credentials.reset("password", "password_confirmation"),
+            user_credentials.reset("current_password", "password", "password_confirmation"),
     });
 };
 </script>
@@ -138,7 +139,6 @@ const submitCredentials = () => {
                                     pattern="^9\d{9}$"
                                     maxlength="10"
                                 />
-                                />
                                 <InputError
                                     class="mt-2"
                                     :message="user_information.errors.phone"
@@ -217,7 +217,22 @@ const submitCredentials = () => {
                                 />
                             </div>
                             <div class="mt-3">
-                                <InputLabel for="password" value="Password" />
+                                <InputLabel for="current_password" value="Current Password (Required to change password)" />
+                                <TextInput
+                                    id="current_password"
+                                    type="password"
+                                    class="mt-1 block w-full"
+                                    v-model="user_credentials.current_password"
+                                    autocomplete="current-password"
+                                    placeholder="Enter your current password"
+                                />
+                                <InputError
+                                    class="mt-2"
+                                    :message="user_credentials.errors.current_password"
+                                />
+                            </div>
+                            <div class="mt-3">
+                                <InputLabel for="password" value="New Password (Leave blank to keep current)" />
                                 <TextInput
                                     id="password"
                                     type="password"

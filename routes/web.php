@@ -43,36 +43,17 @@ Route::get('/', function () {
     ]);
 })->name('landing-page');
 
-Route::get('/system-health', function (\Illuminate\Http\Request $request) {
+Route::get('/system-health', function () {
     try {
         $dbStatus = \Illuminate\Support\Facades\DB::connection()->getPdo() ? 'connected' : 'error';
     } catch (\Throwable $e) {
-        $dbStatus = 'error: ' . $e->getMessage();
-    }
-
-    $resetCheck = null;
-    if ($request->has('check_reset')) {
-        try {
-            $resetCheck = \Illuminate\Support\Facades\Password::sendResetLink(['email' => $request->get('email', 'Singhdalve27@gmail.com')]);
-        } catch (\Throwable $e) {
-            $resetCheck = [
-                'error' => $e->getMessage(),
-                'class' => get_class($e),
-                'file' => $e->getFile() . ':' . $e->getLine(),
-                'trace' => collect($e->getTrace())->map(fn($t) => ($t['file'] ?? '') . ':' . ($t['line'] ?? '') . ' ' . ($t['function'] ?? ''))->take(10),
-            ];
-        }
+        $dbStatus = 'error';
     }
 
     return response()->json([
         'status' => 'online',
-        'php_version' => PHP_VERSION,
-        'app_env' => app()->environment(),
-        'db' => $dbStatus,
-        'base_path' => base_path(),
-        'composer_exists' => file_exists(base_path('composer.json')),
-        'reset_check' => $resetCheck,
-        'time' => now()->toIso8601String(),
+        'db'     => $dbStatus,
+        'time'   => now()->toIso8601String(),
     ]);
 });
 

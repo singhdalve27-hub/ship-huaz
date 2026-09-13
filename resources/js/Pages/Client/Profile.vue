@@ -25,6 +25,7 @@ const user_information = useForm({
 
 const user_credentials = useForm({
     email: user.email,
+    current_password: "",
     password: "",
     password_confirmation: "",
 });
@@ -39,7 +40,7 @@ const submitInformation = () => {
 const submitCredentials = () => {
     user_credentials.put(route("update-credentials"), {
         onSuccess: () =>
-            user_credentials.reset("password", "password_confirmation"),
+            user_credentials.reset("current_password", "password", "password_confirmation"),
     });
 };
 
@@ -430,7 +431,20 @@ const { formatDate, formatAmount } = useFormatter();
                             </div>
 
                             <div>
-                                <InputLabel for="password" value="New Password (Leave blank to keep)" class="text-slate-700 text-xs font-bold uppercase tracking-wider" />
+                                <InputLabel for="current_password" value="Current Password (Required to set a new password)" class="text-slate-700 text-xs font-bold uppercase tracking-wider" />
+                                <TextInput
+                                    id="current_password"
+                                    type="password"
+                                    class="mt-1 block w-full border-slate-200 focus:border-orange-500 focus:ring-orange-500 rounded-xl text-sm"
+                                    v-model="user_credentials.current_password"
+                                    autocomplete="current-password"
+                                    placeholder="Enter your current password"
+                                />
+                                <InputError class="mt-1" :message="user_credentials.errors.current_password" />
+                            </div>
+
+                            <div>
+                                <InputLabel for="password" value="New Password (Leave blank to keep current)" class="text-slate-700 text-xs font-bold uppercase tracking-wider" />
                                 <TextInput
                                     id="password"
                                     type="password"

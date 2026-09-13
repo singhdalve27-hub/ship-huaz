@@ -26,7 +26,7 @@ $app = Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (\Throwable $e, Request $request) {
-            if ($request->has('debug')) {
+            if ($request->has('debug') && config('app.debug')) {
                 return response()->json([
                     'error' => $e->getMessage(),
                     'class' => get_class($e),

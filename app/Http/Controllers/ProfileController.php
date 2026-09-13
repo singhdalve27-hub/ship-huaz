@@ -111,8 +111,9 @@ class ProfileController extends Controller
     public function updateCredentials(Request $request): RedirectResponse
     {
         $request->validate([
-            'email'    => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)->ignore($request->user()->id)],
-            'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
+            'email'            => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)->ignore($request->user()->id)],
+            'current_password' => ['nullable', 'required_with:password', 'current_password'],
+            'password'         => ['nullable', 'confirmed', Rules\Password::defaults()],
         ]);
 
         $request->user()->update([
