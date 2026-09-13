@@ -26,7 +26,7 @@ const tableActions = {
     isSearchShow: false,
 };
 
-const filteredRows = ref([]);
+const filteredRows = ref([...(props.bookings ?? [])]);
 const activeDateFrom = ref("");
 const activeDateTo = ref("");
 const hasFilters = ref(false);
@@ -37,7 +37,7 @@ const handleFilteredChange = ({
     dateTo,
     hasFilters: active,
 }) => {
-    filteredRows.value = rows;
+    filteredRows.value = rows && rows.length ? rows : (active ? [] : [...(props.bookings ?? [])]);
     activeDateFrom.value = dateFrom;
     activeDateTo.value = dateTo;
     hasFilters.value = active;
@@ -51,56 +51,11 @@ const grandTotal = computed(() =>
 );
 
 const canAct = computed(
-    () => hasFilters.value && filteredRows.value.length > 0,
+    () => filteredRows.value.length > 0 || (props.bookings && props.bookings.length > 0),
 );
 
 const handlePrint = () => {
-    const printContents = document.getElementById("print-table").innerHTML;
-
-    const printWindow = window.open("", "_blank");
-
-    printWindow.document.write(`
-        <html>
-            <head>
-                <title>Daily Sales Report</title>
-                <style>
-                    body {
-                        font-family: Arial, sans-serif;
-                    }
-
-                    table {
-                        width: 100%;
-                        border-collapse: collapse;
-                    }
-
-                    th, td {
-                        border: 1px solid #ccc;
-                        padding: 8px;
-                        text-align: center;
-                    }
-
-                    th {
-                        background-color: #f2f2f2;
-                        font-weight: bold;
-                    }
-
-                    td {
-                        font-size: 12px;
-                    }
-                </style>
-            </head>
-            <body>
-                ${printContents}
-            </body>
-        </html>
-    `);
-
-    printWindow.document.close();
-
-    printWindow.onload = () => {
-        printWindow.print();
-        printWindow.close();
-    };
+    window.print();
 };
 </script>
 
@@ -139,13 +94,13 @@ const handlePrint = () => {
                 </div>
                 <hr class="my-2" />
                 <!-- Interactive, paginated table (hidden while printing) -->
-                <div>
+                <div class="print:hidden">
                     <Table
                         :data="bookings"
                         :columns="tableColumns"
                         :actions="tableActions"
-                        :initial-empty="true"
-                        empty-state-message="Select a date range above to generate the report"
+                        :initial-empty="false"
+                        empty-state-message="No sales records found"
                         @filtered-change="handleFilteredChange"
                     >
                         <!-- Ref -->
@@ -287,85 +242,54 @@ const handlePrint = () => {
                 </div>
 
                 <!-- Print-only view: full filtered list, no pagination, plus a grand total -->
-                <div id="print-table" class="hidden">
-                    <h2 class="text-lg font-bold mb-1">Daily Sales Report - Butal ShipHauz</h2>
-                    <p class="text-xs text-stone-500 mb-3">
-                        {{ activeDateFrom ? formatDate(activeDateFrom) : "—" }}
-                        to
-                        {{ activeDateTo ? formatDate(activeDateTo) : "—" }}
-                    </p>
+                <div id="print-table" class="hidden print:block text-black">
+                    <div class="mb-4 pb-3 border-b-2 border-slate-900 flex justify-between items-end">
+                        <div>
+                            <h2 class="text-2xl font-black tracking-tight text-slate-900">Daily Sales Report</h2>
+                            <p class="text-sm font-bold text-orange-600 font-display">Butal Ship Hauz • Talibon, Bohol</p>
+                            <p class="text-xs text-slate-600 mt-1">
+                                <strong>Period:</strong> 
+                                {{ activeDateFrom ? formatDate(activeDateFrom) : "All Time / Manifest" }}
+                                <template v-if="activeDateTo"> to {{ formatDate(activeDateTo) }}</template>
+                            </p>
+                        </div>
+                        <div class="text-right text-xs text-slate-500 font-mono">
+                            <p>Total Records: <strong>{{ filteredRows.length }}</strong></p>
+                            <p>Printed: {{ new Date().toLocaleString("en-PH") }}</p>
+                        </div>
+                    </div>
 
                     <table class="w-full text-xs border-collapse">
                         <thead>
-                            <tr>
-                                <th class="border border-stone-400 px-2 py-1">
-                                    #
-                                </th>
-                                <th class="border border-stone-400 px-2 py-1">
-                                    Booking Ref
-                                </th>
-                                <th class="border border-stone-400 px-2 py-1">
-                                    Event
-                                </th>
-                                <th class="border border-stone-400 px-2 py-1">
-                                    Package
-                                </th>
-                                <th class="border border-stone-400 px-2 py-1">
-                                    Client
-                                </th>
-                                <th class="border border-stone-400 px-2 py-1">
-                                    Payment
-                                </th>
-                                <th class="border border-stone-400 px-2 py-1">
-                                    Date
-                                </th>
-                                <th class="border border-stone-400 px-2 py-1">
-                                    Total
-                                </th>
+                            <tr class="bg-slate-100">
+                                <th class="border border-slate-400 px-2 py-1.5 text-center">#</th>
+                                <th class="border border-slate-400 px-2 py-1.5 text-left">Booking Ref</th>
+                                <th class="border border-slate-400 px-2 py-1.5 text-left">Event</th>
+                                <th class="border border-slate-400 px-2 py-1.5 text-left">Package</th>
+                                <th class="border border-slate-400 px-2 py-1.5 text-left">Client</th>
+                                <th class="border border-slate-400 px-2 py-1.5 text-center">Payment</th>
+                                <th class="border border-slate-400 px-2 py-1.5 text-center">Date</th>
+                                <th class="border border-slate-400 px-2 py-1.5 text-right">Total</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="(row, index) in filteredRows" :key="row.id">
-                                <td class="border border-stone-300 px-2 py-1">
-                                    {{ ++index }}
-                                </td>
-                                <td class="border border-stone-300 px-2 py-1">
-                                    {{ row.booking_ref }}
-                                </td>
-                                <td class="border border-stone-300 px-2 py-1">
-                                    {{ row.event_type?.type ?? "—" }}
-                                </td>
-                                <td class="border border-stone-300 px-2 py-1">
-                                    {{ row.venue_package?.title ?? "—" }}
-                                </td>
-                                <td class="border border-stone-300 px-2 py-1">
-                                    {{ row.user?.user_info.first_name }}
-                                    {{ row.user?.user_info.last_name }}
-                                </td>
-                                <td class="border border-stone-300 px-2 py-1">
-                                    {{
-                                        row.payment_option?.payment ?? "Walk-in"
-                                    }}
-                                </td>
-                                <td class="border border-stone-300 px-2 py-1">
-                                    {{ row.date ? formatDate(row.date) : "—" }}
-                                </td>
-                                <td class="border border-stone-300 px-2 py-1">
-                                    {{ formatAmount(row.total_payment) }}
-                                </td>
+                            <tr v-for="(row, index) in filteredRows" :key="row.id" class="border-b border-slate-200">
+                                <td class="border border-slate-300 px-2 py-1 text-center font-mono">{{ ++index }}</td>
+                                <td class="border border-slate-300 px-2 py-1 font-mono font-bold">{{ row.booking_ref }}</td>
+                                <td class="border border-slate-300 px-2 py-1">{{ row.event_type?.type ?? "—" }}</td>
+                                <td class="border border-slate-300 px-2 py-1">{{ row.venue_package?.title ?? "—" }}</td>
+                                <td class="border border-slate-300 px-2 py-1">{{ row.user?.user_info?.first_name }} {{ row.user?.user_info?.last_name }}</td>
+                                <td class="border border-slate-300 px-2 py-1 text-center">{{ row.payment_option?.payment ?? "Walk-in" }}</td>
+                                <td class="border border-slate-300 px-2 py-1 text-center">{{ row.date ? formatDate(row.date) : "—" }}</td>
+                                <td class="border border-slate-300 px-2 py-1 text-right font-bold">{{ formatAmount(row.total_payment) }}</td>
                             </tr>
                         </tbody>
                         <tfoot>
-                            <tr>
-                                <td
-                                    colspan="7"
-                                    class="border border-stone-400 px-2 py-1 text-right font-semibold"
-                                >
-                                    Grand Total
+                            <tr class="bg-slate-100">
+                                <td colspan="7" class="border border-slate-400 px-2 py-2 text-right font-bold text-sm">
+                                    Grand Total:
                                 </td>
-                                <td
-                                    class="border border-stone-400 px-2 py-1 font-semibold"
-                                >
+                                <td class="border border-slate-400 px-2 py-2 text-right font-black text-sm text-slate-900">
                                     {{ formatAmount(grandTotal) }}
                                 </td>
                             </tr>
@@ -376,3 +300,36 @@ const handlePrint = () => {
         </div>
     </AdminLayout>
 </template>
+
+<style>
+@media print {
+    @page {
+        size: auto;
+        margin: 10mm 12mm;
+    }
+    body {
+        background: white !important;
+        color: black !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    header, footer, nav, aside, .print\:hidden {
+        display: none !important;
+    }
+    #print-table {
+        display: block !important;
+        width: 100% !important;
+    }
+    #print-table table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+    #print-table th, #print-table td {
+        border: 1px solid #94a3b8 !important;
+    }
+    #print-table th {
+        background-color: #f1f5f9 !important;
+        color: #0f172a !important;
+    }
+}
+</style>

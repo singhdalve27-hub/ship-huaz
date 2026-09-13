@@ -109,6 +109,11 @@ class BookingController extends Controller
             $request->merge(['guest_phone' => $clean]);
         }
 
+        if ($request->has('payment_transaction_ref')) {
+            $rawRef = preg_replace('/\s+/', '', (string) $request->payment_transaction_ref);
+            $request->merge(['payment_transaction_ref' => $rawRef]);
+        }
+
         $validated = $request->validate([
             'date'                      => ['required', 'date', 'after_or_equal:today'],
             'time_slot'                 => ['required', 'string'],
@@ -120,13 +125,13 @@ class BookingController extends Controller
             'package_add_ons.*'         => ['integer', 'exists:package_add_ons,id'],
             'guest_first_name'          => ['required', 'string', 'max:100'],
             'guest_last_name'           => ['required', 'string', 'max:100'],
-            'guest_email'               => ['required', 'email', 'max:255'],
+            'guest_email'               => ['required', 'email:rfc,filter', 'max:255'],
             'guest_phone'               => ['required', 'regex:/^9\d{9}$/'],
             'guest_count'               => ['required', 'integer', 'min:1'],
             'guest_request_notes'       => ['nullable', 'string', 'max:1000'],
             'payment_option_id'         => ['required'],
-            'payment_account_number'    => ['nullable', 'required_unless:payment_option_id,property', 'string', 'max:20'],
-            'payment_transaction_ref'   => ['nullable', 'required_unless:payment_option_id,property', 'string', 'max:100'],
+            'payment_account_number'    => ['nullable', 'required_unless:payment_option_id,property', 'string', 'min:10', 'max:20'],
+            'payment_transaction_ref'   => ['nullable', 'required_unless:payment_option_id,property', 'regex:/^\d{10,16}$/'],
             'total_payment'             => ['required', 'numeric'], 
         ]);
 
@@ -287,8 +292,8 @@ class BookingController extends Controller
             return true;
         }
 
-        $isFullDayBooked = str_contains($bookedTime, 'Full Day') || str_contains($bookedTime, '8:00 AM – 5:00 PM') || str_contains($bookedTime, '8:00 AM – 10:00 PM');
-        $isFullDayReq = str_contains($requestedTime, 'Full Day') || str_contains($requestedTime, '8:00 AM – 5:00 PM') || str_contains($requestedTime, '8:00 AM – 10:00 PM');
+        $isFullDayBooked = str_contains($bookedTime, 'Full Day') || str_contains($bookedTime, '8:00 AM – 5:00 PM') || str_contains($bookedTime, '8:00 AM – 10:00 PM') || str_contains($bookedTime, 'Overnight');
+        $isFullDayReq = str_contains($requestedTime, 'Full Day') || str_contains($requestedTime, '8:00 AM – 5:00 PM') || str_contains($requestedTime, '8:00 AM – 10:00 PM') || str_contains($requestedTime, 'Overnight');
 
         if ($isFullDayBooked || $isFullDayReq) {
             return true;
@@ -372,16 +377,22 @@ class BookingController extends Controller
 
     private function sendBookingStatusEmail(Booking $booking, string $status): void
     {
-        $booking->load('eventType', 'venuePackage', 'user', 'user.userInfo');
+        try {
+            $booking->load('eventType', 'venuePackage', 'user', 'user.userInfo');
 
-        $guestName = $booking->guest_first_name . ' ' . $booking->guest_last_name;
-        $userEmail  = $booking->user->email ?? null;
-        $userName   = $booking->user->userInfo->first_name . ' ' . $booking->user->userInfo->last_name;
+            $guestName = $booking->guest_first_name . ' ' . $booking->guest_last_name;
+            $userEmail  = $booking->user->email ?? null;
+            $userName   = $booking->user->userInfo->first_name . ' ' . $booking->user->userInfo->last_name;
 
-        Mail::to($booking->guest_email)->send(new BookingMail($booking, $status, $guestName));
+            if (!empty($booking->guest_email)) {
+                Mail::to($booking->guest_email)->send(new BookingMail($booking, $status, $guestName));
+            }
 
-        if ($userEmail && $userEmail !== $booking->guest_email) {
-            Mail::to($userEmail)->send(new BookingMail($booking, $status, $userName));
+            if ($userEmail && $userEmail !== $booking->guest_email) {
+                Mail::to($userEmail)->send(new BookingMail($booking, $status, $userName));
+            }
+        } catch (\Throwable $e) {
+            \Log::error('Failed to send booking status email [' . $status . '] for booking #' . $booking->booking_ref . ': ' . $e->getMessage());
         }
     }
 }

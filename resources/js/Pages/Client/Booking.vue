@@ -249,7 +249,25 @@ const timeSlots = [
     { id: "afternoon", label: "Afternoon", time: "1:00 PM – 5:00 PM" },
     { id: "night", label: "Night", time: "6:00 PM – 10:00 PM" }, 
     { id: "fullday", label: "Full Day", time: "8:00 AM – 5:00 PM" },
+    { id: "overnight", label: "Overnight Stay", time: "Overnight (Check-in 2:00 PM – Check-out 12:00 PM)" },
 ];
+
+const checkOutDate = computed(() => {
+    if (!eventDate.value) return "";
+    const d = new Date(eventDate.value + "T00:00:00");
+    d.setDate(d.getDate() + 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+});
+
+const selectTimeSlot = (slotId) => {
+    timeSlotId.value = slotId;
+    if (slotId === "overnight" && !exactTime.value) {
+        exactTime.value = "14:00";
+    }
+};
 
 const eventType = ref("");
 const bookingMode = ref("exclusive"); 
@@ -271,11 +289,13 @@ const checkTimeSlotOverlap = (bookedTime, requestedTime) => {
     const isFullDayBooked =
         bookedTime.includes("Full Day") ||
         bookedTime.includes("8:00 AM – 5:00 PM") ||
-        bookedTime.includes("8:00 AM – 10:00 PM");
+        bookedTime.includes("8:00 AM – 10:00 PM") ||
+        bookedTime.includes("Overnight");
     const isFullDayReq =
         requestedTime.includes("Full Day") ||
         requestedTime.includes("8:00 AM – 5:00 PM") ||
-        requestedTime.includes("8:00 AM – 10:00 PM");
+        requestedTime.includes("8:00 AM – 10:00 PM") ||
+        requestedTime.includes("Overnight");
     return isFullDayBooked || isFullDayReq;
 };
 
@@ -375,12 +395,22 @@ const contact = ref({
     requests: "",
 });
 
+const isEmailValid = computed(() => {
+    const em = (contact.value.email || "").trim();
+    return em.includes("@") && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em);
+});
+
+const isPhoneValid = computed(() => {
+    const ph = (contact.value.phone || "").replace(/[\s\-]/g, "");
+    return /^(09\d{9}|9\d{9}|\+?639\d{9})$/.test(ph);
+});
+
 const step3Valid = computed(
     () =>
-        contact.value.firstName &&
-        contact.value.lastName &&
-        contact.value.email &&
-        contact.value.phone,
+        contact.value.firstName.trim().length > 0 &&
+        contact.value.lastName.trim().length > 0 &&
+        isEmailValid.value &&
+        isPhoneValid.value,
 );
 
 // Sync guestCount with per_head addons
@@ -542,12 +572,25 @@ const copyAccountNumber = (num) => {
     }, 2000);
 };
 
+const isPaymentAccountValid = computed(() => {
+    if (!selectedPaymentOption.value?.isOnline) return true;
+    const acc = (payment.value.accountNumber || "").replace(/[\s\-]/g, "");
+    return /^(09\d{9}|9\d{9}|\+?639\d{9}|\d{10,16})$/.test(acc);
+});
+
+const isPaymentRefValid = computed(() => {
+    if (!selectedPaymentOption.value?.isOnline) return true;
+    const ref = (payment.value.transactionNumber || "").replace(/\s+/g, "");
+    const isGCash = (selectedPaymentOption.value?.label || "").toLowerCase().includes("gcash");
+    if (isGCash) {
+        return /^\d{13}$/.test(ref);
+    }
+    return /^\d{10,16}$/.test(ref);
+});
+
 const step5Valid = computed(() => {
     if (selectedPaymentOption.value?.isOnline) {
-        return (
-            payment.value.accountNumber.trim() !== "" &&
-            payment.value.transactionNumber.trim() !== ""
-        );
+        return isPaymentAccountValid.value && isPaymentRefValid.value;
     }
     return true;
 });
@@ -685,6 +728,7 @@ const getPackagePriceDisplay = (pkg) => {
     if (timeSlotId.value === 'morning') return fmt(pkg.price_morning) + ' /morning';
     if (timeSlotId.value === 'afternoon') return fmt(pkg.price_afternoon) + ' /afternoon';
     if (timeSlotId.value === 'night') return fmt(pkg.price_night) + ' /night'; 
+    if (timeSlotId.value === 'overnight') return fmt(pkg.price_fullday) + ' /overnight'; 
     return fmt(pkg.price_fullday) + ' /fullday';
 };
 
@@ -1052,9 +1096,9 @@ onMounted(() => {
 
                         <div class="mb-6 sm:mb-8">
                             <label class="block text-sm font-bold text-sky-900 mb-3">Time Slot</label>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
                                 <button
-                                    v-for="slot in timeSlots" :key="slot.id" @click="timeSlotId = slot.id"
+                                    v-for="slot in timeSlots" :key="slot.id" @click="selectTimeSlot(slot.id)"
                                     :class="['text-left border-2 rounded-xl p-3.5 sm:p-5 transition-all duration-200 outline-none', timeSlotId === slot.id ? 'border-orange-500 bg-orange-50 shadow-sm shadow-orange-500/10' : 'border-slate-200 hover:border-orange-300 hover:bg-slate-50']"
                                 >
                                     <p class="font-bold text-sky-900 text-sm sm:text-base mb-1">{{ slot.label }}</p>
@@ -1063,9 +1107,32 @@ onMounted(() => {
                             </div>
                         </div>
 
+                        <!-- Overnight Stay Specific Details Card -->
+                        <div v-if="timeSlotId === 'overnight' && eventDate" class="mb-6 sm:mb-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-sky-900 to-indigo-950 text-white shadow-md">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="px-2.5 py-0.5 rounded-full bg-orange-500 text-white font-mono text-[10px] font-bold uppercase tracking-wider">Overnight Stay Schedule</span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="p-3.5 rounded-xl bg-white/10 border border-white/10">
+                                    <span class="text-[11px] font-mono uppercase text-sky-300 font-bold block">Check-in Schedule</span>
+                                    <p class="text-sm sm:text-base font-bold mt-1 text-white">{{ fmtDate(eventDate) }} at 2:00 PM</p>
+                                    <p class="text-[11px] text-sky-200 mt-0.5">Welcome reception & vessel ingress</p>
+                                </div>
+                                <div class="p-3.5 rounded-xl bg-white/10 border border-white/10">
+                                    <span class="text-[11px] font-mono uppercase text-amber-300 font-bold block">Check-out Schedule</span>
+                                    <p class="text-sm sm:text-base font-bold mt-1 text-amber-300">{{ fmtDate(checkOutDate) }} at 12:00 PM</p>
+                                    <p class="text-[11px] text-amber-200 mt-0.5">Vessel turnover & egress next day</p>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="mb-6 sm:mb-8">
-                            <label class="block text-sm font-bold text-sky-900 mb-2">Exact Start / Arrival Time <span class="text-orange-500">*</span></label>
-                            <p class="text-xs text-slate-500 mb-2">Please indicate the exact time you or your guests will arrive or start.</p>
+                            <label class="block text-sm font-bold text-sky-900 mb-2">
+                                {{ timeSlotId === 'overnight' ? 'Check-in / Estimated Arrival Time' : 'Exact Start / Arrival Time' }} <span class="text-orange-500">*</span>
+                            </label>
+                            <p class="text-xs text-slate-500 mb-2">
+                                {{ timeSlotId === 'overnight' ? 'Check-in begins at 2:00 PM. Please indicate your expected arrival time.' : 'Please indicate the exact time you or your guests will arrive or start.' }}
+                            </p>
                             <input type="time" v-model="exactTime" class="w-full sm:max-w-xs border border-slate-300 rounded-md px-4 py-2.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm" required />
                         </div>
 
@@ -1083,7 +1150,14 @@ onMounted(() => {
                             </div>
                             <div class="min-w-0 flex-1">
                                 <p class="text-sm sm:text-base font-bold text-sky-900 mb-0.5 truncate">{{ selectedEventTypeLabel }}</p>
-                                <p class="text-xs sm:text-sm font-medium text-sky-700 truncate">{{ fmtDate(eventDate) }} &bull; {{ selectedTimeSlotData?.label }} ({{ formatExactTime(exactTime) }})</p>
+                                <p class="text-xs sm:text-sm font-medium text-sky-700 truncate">
+                                    <template v-if="timeSlotId === 'overnight'">
+                                        Check-in: {{ fmtDate(eventDate) }} ({{ formatExactTime(exactTime) }}) &bull; Check-out: {{ fmtDate(checkOutDate) }} (12:00 PM)
+                                    </template>
+                                    <template v-else>
+                                        {{ fmtDate(eventDate) }} &bull; {{ selectedTimeSlotData?.label }} ({{ formatExactTime(exactTime) }})
+                                    </template>
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -1291,7 +1365,17 @@ onMounted(() => {
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-sky-900 mb-2">Email Address <span class="text-orange-500">*</span></label>
-                                <input v-model="contact.email" type="email" placeholder="e.g. juan@example.com" required class="w-full border border-slate-300 rounded-md px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm" />
+                                <input
+                                    v-model="contact.email"
+                                    type="email"
+                                    placeholder="e.g. juan@example.com"
+                                    required
+                                    class="w-full border rounded-md px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm"
+                                    :class="contact.email && !isEmailValid ? 'border-rose-400 bg-rose-50/40 text-rose-900' : 'border-slate-300'"
+                                />
+                                <p v-if="contact.email && !isEmailValid" class="text-xs text-rose-500 font-bold mt-1">
+                                    ⚠️ Email must contain @ and a valid domain (e.g. juan@example.com).
+                                </p>
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-sky-900 mb-2">Mobile Phone Number <span class="text-orange-500">*</span></label>
@@ -1307,10 +1391,14 @@ onMounted(() => {
                                         pattern="^9\d{9}$"
                                         maxlength="10"
                                         required
-                                        class="w-full pl-12 border border-slate-300 rounded-md px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm"
+                                        class="w-full pl-12 border rounded-md px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm"
+                                        :class="contact.phone && !isPhoneValid ? 'border-rose-400 bg-rose-50/40 text-rose-900' : 'border-slate-300'"
                                     />
                                 </div>
-                                <p class="text-[10px] text-slate-400 mt-1">10 digits starting with 9 (e.g. 9123456789)</p>
+                                <p v-if="contact.phone && !isPhoneValid" class="text-xs text-rose-500 font-bold mt-1">
+                                    ⚠️ Must be a complete 10-digit number starting with 9 (e.g. 9123456789).
+                                </p>
+                                <p v-else class="text-[10px] text-slate-400 mt-1">10 digits starting with 9 (e.g. 9123456789)</p>
                             </div>
                             
                             <div class="sm:col-span-2 pt-4 border-t border-slate-100">
@@ -1376,8 +1464,14 @@ onMounted(() => {
                                 <div class="flex flex-col gap-0.5">
                                     <span class="text-slate-500 font-medium text-xs uppercase">Date & Time</span>
                                     <span class="font-bold text-sky-900">
-                                        {{ fmtDate(eventDate) }}<br/>
-                                        <span class="text-slate-600 font-medium text-xs">{{ selectedTimeSlotData?.label }} ({{ formatExactTime(exactTime) }})</span>
+                                        <template v-if="timeSlotId === 'overnight'">
+                                            Check-in: {{ fmtDate(eventDate) }} ({{ formatExactTime(exactTime) }})<br/>
+                                            <span class="text-slate-600 font-medium text-xs">Check-out: {{ fmtDate(checkOutDate) }} at 12:00 PM (Overnight)</span>
+                                        </template>
+                                        <template v-else>
+                                            {{ fmtDate(eventDate) }}<br/>
+                                            <span class="text-slate-600 font-medium text-xs">{{ selectedTimeSlotData?.label }} ({{ formatExactTime(exactTime) }})</span>
+                                        </template>
                                     </span>
                                 </div>
                                 <div class="flex flex-col gap-0.5">
@@ -1550,21 +1644,25 @@ onMounted(() => {
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pt-2">
                                 <div>
                                     <label class="block text-sm font-bold text-sky-900 mb-2">
-                                        Your {{ selectedPaymentOption.label }} Mobile Number <span class="text-orange-500">*</span>
+                                        Your {{ selectedPaymentOption.label }} Mobile / Account Number <span class="text-orange-500">*</span>
                                     </label>
                                     <input
                                         v-model="payment.accountNumber"
                                         type="tel"
                                         placeholder="e.g. 09123456789"
-                                        maxlength="11"
+                                        maxlength="16"
                                         required
-                                        class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm"
+                                        class="w-full border rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm font-mono"
+                                        :class="payment.accountNumber && !isPaymentAccountValid ? 'border-rose-400 bg-rose-50/40 text-rose-900' : 'border-slate-300'"
                                     />
-                                    <p class="text-[11px] text-slate-400 mt-1">The sender number used on GCash</p>
+                                    <p v-if="payment.accountNumber && !isPaymentAccountValid" class="text-xs text-rose-500 font-bold mt-1">
+                                        ⚠️ Please enter a complete sender mobile number (e.g. 09123456789).
+                                    </p>
+                                    <p v-else class="text-[11px] text-slate-400 mt-1">The sender number used on {{ selectedPaymentOption.label }}</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-bold text-sky-900 mb-2">
-                                        GCash Reference Number (13 digits) <span class="text-orange-500">*</span>
+                                        {{ selectedPaymentOption.label.toLowerCase().includes('gcash') ? 'GCash Reference Number (13 digits)' : 'Transaction Reference Number' }} <span class="text-orange-500">*</span>
                                     </label>
                                     <input
                                         v-model="payment.transactionNumber"
@@ -1572,9 +1670,13 @@ onMounted(() => {
                                         placeholder="e.g. 1029384756382"
                                         maxlength="30"
                                         required
-                                        class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm font-mono"
+                                        class="w-full border rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm font-mono"
+                                        :class="payment.transactionNumber && !isPaymentRefValid ? 'border-rose-400 bg-rose-50/40 text-rose-900' : 'border-slate-300'"
                                     />
-                                    <p class="text-[11px] text-slate-400 mt-1">Found in your GCash SMS or in-app receipt</p>
+                                    <p v-if="payment.transactionNumber && !isPaymentRefValid" class="text-xs text-rose-500 font-bold mt-1">
+                                        ⚠️ {{ selectedPaymentOption.label.toLowerCase().includes('gcash') ? 'Must be exactly 13 digits (numbers only, e.g. 1029384756382).' : 'Must be a valid 10 to 16 digit transaction reference number.' }}
+                                    </p>
+                                    <p v-else class="text-[11px] text-slate-400 mt-1">Found in your GCash SMS or in-app receipt</p>
                                 </div>
                             </div>
                         </div>

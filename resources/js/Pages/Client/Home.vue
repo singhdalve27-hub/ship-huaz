@@ -558,18 +558,6 @@ const submitFeedback = () => {
                                 </span>
                             </div>
 
-                            <!-- Starting Rate Tag -->
-                            <div class="absolute bottom-4 left-4 right-4 flex items-center justify-between text-white">
-                                <div>
-                                    <span class="text-[10px] font-mono uppercase text-slate-300 block">Starting From</span>
-                                    <span class="font-display font-black text-2xl text-amber-400 leading-none">
-                                        ₱{{ Number(deck.price).toLocaleString("en-PH") }}
-                                    </span>
-                                </div>
-                                <span class="text-[11px] font-medium text-slate-200 bg-black/40 px-2.5 py-1 rounded-md backdrop-blur-xs">
-                                    per shift
-                                </span>
-                            </div>
                         </div>
 
                         <!-- Card Content -->
@@ -607,7 +595,7 @@ const submitFeedback = () => {
                                     @click="openDeckModal(deck)"
                                     class="flex-1 py-2.5 px-3 rounded-xl border border-slate-200 hover:border-sky-300 hover:bg-sky-50/50 text-slate-700 text-xs font-bold transition-all text-center"
                                 >
-                                    Inclusions & Rates
+                                    Rates & Packages
                                 </button>
                                 <Link
                                     :href="route('client.booking.index', { venue_id: deck.id })"
@@ -894,19 +882,7 @@ const submitFeedback = () => {
                         </div>
                     </div>
 
-                    <!-- Deck Inclusions -->
-                    <div class="space-y-3">
-                        <h4 class="font-mono text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                            <font-awesome-icon icon="fa-solid fa-circle-check" class="text-emerald-500" />
-                            Deck Amenities & Inclusions
-                        </h4>
-                        <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-600">
-                            <li v-for="(inc, idx) in activeDeck.inclusions" :key="idx" class="flex items-start gap-2">
-                                <font-awesome-icon icon="fa-solid fa-check" class="text-emerald-500 mt-0.5 text-[10px]" />
-                                <span>{{ inc }}</span>
-                            </li>
-                        </ul>
-                    </div>
+
                 </div>
 
                 <!-- Modal Footer (Fixed) -->
@@ -1019,18 +995,7 @@ const submitFeedback = () => {
                     </div>
                 </div>
 
-                <!-- Inclusions & Important Notices -->
-                <div class="p-3.5 rounded-xl bg-amber-50/60 border border-amber-200 text-xs text-amber-900 space-y-1 leading-relaxed">
-                    <p class="font-bold flex items-center gap-1">
-                        <font-awesome-icon icon="fa-solid fa-circle-info" />
-                        <span>Voyage Guidelines & Venue Inclusions:</span>
-                    </p>
-                    <p class="text-[11px]">
-                        • Ingress: Complimentary 2 hours before event start for setup and food styling. Egress: 1 hour.<br/>
-                        • Power Assurance: 100% automatic heavy-duty commercial backup generator on standby.<br/>
-                        • Present this e-receipt screenshot or reference number upon entry at Sitio Capawan, Talibon.
-                    </p>
-                </div>
+
 
                 <!-- Modal Actions -->
                 <div class="pt-4 border-t border-slate-100 flex items-center justify-between gap-3 print:hidden">

@@ -397,21 +397,6 @@ const venuePerks = [
         desc: "An architectural landmark in Talibon, Bohol offering iconic photo backdrops that guests will talk about for years.",
     },
     {
-        icon: "fa-solid fa-wind",
-        title: "Refreshing Ocean Breeze & Bay Views",
-        desc: "Experience scenic coastal trade winds and panoramic sea vistas, creating a naturally cool and breath-taking maritime ambience.",
-    },
-    {
-        icon: "fa-solid fa-bolt",
-        title: "100% Backup Power Generator",
-        desc: "Zero worries about local brownouts. Our heavy-duty standby generator keeps lights, sound, and stage equipment running uninterrupted.",
-    },
-    {
-        icon: "fa-solid fa-square-parking",
-        title: "Spacious Free Guest Parking",
-        desc: "Ample, well-lit parking spaces accommodating up to 50+ vehicles, vans, and buses with security assistance.",
-    },
-    {
         icon: "fa-solid fa-music",
         title: "Pro Audio & Stage Equipment",
         desc: "High-clarity speaker arrays, wireless microphones, and versatile LED wash lighting ready for your band, DJ, or host.",
@@ -514,16 +499,6 @@ const socials = ref([
         label: "Facebook",
         url: "https://www.facebook.com/share/1KawkEhDiH/",
         icon: '<path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>',
-    },
-    {
-        label: "Instagram",
-        url: "https://www.instagram.com/",
-        icon: '<rect x="2" y="2" width="20" height="20" rx="5" ry="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.5" cy="6.5" r="1"/>',
-    },
-    {
-        label: "TikTok",
-        url: "https://www.tiktok.com/",
-        icon: '<path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.79 1.53V6.77a4.85 4.85 0 0 1-1.02-.08z"/>',
     },
 ]);
 </script>
@@ -918,16 +893,7 @@ const socials = ref([
                                 </span>
                             </div>
 
-                            <!-- Price Tag on Image -->
-                            <div class="absolute bottom-4 left-4 right-4 flex items-end justify-between text-white">
-                                <div>
-                                    <span class="text-[11px] font-mono uppercase tracking-wider text-amber-300 font-bold block drop-shadow">Package Rate Starts At</span>
-                                    <div class="text-2xl sm:text-3xl font-black font-display text-white drop-shadow-md">
-                                        ₱{{ Number(venue.price).toLocaleString() }}
-                                        <span class="text-xs font-bold text-slate-200 font-body">/ slot</span>
-                                    </div>
-                                </div>
-                            </div>
+
                         </div>
 
                         <!-- Card Body -->
@@ -957,20 +923,7 @@ const socials = ref([
                                 </div>
                             </div>
 
-                            <!-- Key Amenities Pills -->
-                            <div class="space-y-2 mb-6 pt-3 border-t border-slate-100 flex-1">
-                                <span class="font-mono text-[11px] uppercase tracking-wider text-slate-700 font-bold block">Included Highlights:</span>
-                                <div class="flex flex-wrap gap-1.5">
-                                    <span 
-                                        v-for="feat in (venue.features || ['Scenic Ocean View', 'Stage Ready', 'Pro Sound'])" 
-                                        :key="feat"
-                                        class="inline-flex items-center gap-1 text-xs font-semibold bg-sky-50 text-sky-900 border border-sky-100 px-2.5 py-1 rounded-md"
-                                    >
-                                        <font-awesome-icon icon="fa-solid fa-check" class="text-emerald-600 text-[10px]" />
-                                        {{ feat }}
-                                    </span>
-                                </div>
-                            </div>
+
 
                             <!-- Dual Action Buttons -->
                             <div class="pt-4 border-t border-slate-100 flex flex-col gap-2.5">

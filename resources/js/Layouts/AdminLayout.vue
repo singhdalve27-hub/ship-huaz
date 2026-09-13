@@ -109,16 +109,6 @@ const socials = [
         url: "https://www.facebook.com/share/1KawkEhDiH/",
         icon: '<path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>',
     },
-    {
-        label: "Instagram",
-        url: "https://www.instagram.com/",
-        icon: '<rect x="2" y="2" width="20" height="20" rx="5" ry="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.5" cy="6.5" r="1"/>',
-    },
-    {
-        label: "TikTok",
-        url: "https://www.tiktok.com/",
-        icon: '<path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.79 1.53V6.77a4.85 4.85 0 0 1-1.02-.08z"/>',
-    },
 ];
 </script>
 
@@ -128,7 +118,7 @@ const socials = [
         <!-- ══════════════════════════════════════════════════════ -->
         <!-- 1. TOP ANNOUNCEMENT BAR (Identical to Welcome.vue)     -->
         <!-- ══════════════════════════════════════════════════════ -->
-        <header class="sticky top-0 left-0 right-0 z-40">
+        <header class="sticky top-0 left-0 right-0 z-40 print:hidden">
             <div class="bg-sky-900 text-sky-100 text-xs py-2 px-4 text-center border-b border-sky-800 hidden sm:block">
                 <div class="max-w-7xl mx-auto flex items-center justify-between">
                     <span class="inline-flex items-center gap-2 font-medium">
@@ -530,9 +520,9 @@ const socials = [
         <!-- ══════════════════════════════════════════════════════ -->
         <!-- 2. MAIN ADMIN CONTENT CONTAINER                        -->
         <!-- ══════════════════════════════════════════════════════ -->
-        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
+        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 relative print:max-w-none print:p-0 print:m-0">
             <!-- Subtle Nautical Background Accent Pattern -->
-            <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden opacity-[0.03]">
+            <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden opacity-[0.03] print:hidden">
                 <div class="absolute -top-40 right-0 w-[600px] h-[600px] rounded-full border-[60px] border-slate-900"></div>
                 <div class="absolute top-1/2 left-0 w-[450px] h-[450px] rounded-full border-[40px] border-slate-900"></div>
             </div>
@@ -545,7 +535,7 @@ const socials = [
         <!-- ══════════════════════════════════════════════════════ -->
         <!-- 3. MARITIME LUXURY FOOTER (Identical to Welcome.vue)   -->
         <!-- ══════════════════════════════════════════════════════ -->
-        <footer class="bg-slate-900 text-slate-400 pt-16 pb-12 border-t-2 border-orange-500 mt-auto">
+        <footer class="bg-slate-900 text-slate-400 pt-16 pb-12 border-t-2 border-orange-500 mt-auto print:hidden">
             <div class="max-w-7xl mx-auto px-6 md:px-8">
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 pb-12 border-b border-slate-800">
                     

@@ -138,6 +138,21 @@ const rangeEnd = computed(() =>
 const isShowingResults = computed(
     () => !props.initialEmpty || hasActiveFilters.value,
 );
+
+const emit = defineEmits(["filtered-change"]);
+
+watch(
+    [filteredBookings, dateFrom, dateTo, hasActiveFilters],
+    ([rows, df, dt, active]) => {
+        emit("filtered-change", {
+            rows: rows || [],
+            dateFrom: df,
+            dateTo: dt,
+            hasFilters: !!active,
+        });
+    },
+    { immediate: true, deep: true },
+);
 </script>
 
 <template>
