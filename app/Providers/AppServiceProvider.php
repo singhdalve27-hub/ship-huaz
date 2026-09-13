@@ -30,15 +30,18 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
-        // Clear stale cached routes or config if present on shared hosting
+        // Ensure minimal composer.json exists so Laravel Application::getNamespace() never throws on shared hosting
         try {
-            $cachedRoutes = base_path('bootstrap/cache/routes-v7.php');
-            if (file_exists($cachedRoutes)) {
-                @unlink($cachedRoutes);
-            }
-            $cachedConfig = base_path('bootstrap/cache/config.php');
-            if (file_exists($cachedConfig)) {
-                @unlink($cachedConfig);
+            $composerPath = base_path('composer.json');
+            if (!file_exists($composerPath)) {
+                @file_put_contents($composerPath, json_encode([
+                    'name' => 'laravel/laravel',
+                    'autoload' => [
+                        'psr-4' => [
+                            'App\\' => 'app/',
+                        ],
+                    ],
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
             }
         } catch (\Throwable $e) {
             // Graceful
