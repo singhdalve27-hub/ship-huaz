@@ -16,7 +16,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        try {
+            \Closure::bind(function () {
+                $this->namespace = 'App\\';
+            }, $this->app, get_class($this->app))();
+        } catch (\Throwable $e) {
+            // Graceful
+        }
     }
 
     /**
