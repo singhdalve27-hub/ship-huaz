@@ -59,22 +59,6 @@ Route::get('/system-health', function () {
     ]);
 });
 
-Route::get('/test-ziggy', function () {
-    try {
-        return response(app(\Tighten\Ziggy\BladeRouteGenerator::class)->generate())->header('Content-Type', 'application/javascript');
-    } catch (\Throwable $e) {
-        return response()->json(['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()], 500);
-    }
-});
-
-Route::get('/test-vite', function () {
-    try {
-        return response(app(\Illuminate\Foundation\Vite::class)(['resources/js/app.js', 'resources/js/Pages/Welcome.vue'])->toHtml())->header('Content-Type', 'text/html');
-    } catch (\Throwable $e) {
-        return response()->json(['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()], 500);
-    }
-});
-
 // Direct booking route that safely forwards query parameters to client booking wizard
 Route::get('/booking', function (\Illuminate\Http\Request $request) {
     return redirect()->route('client.booking.index', $request->query());
